@@ -12,7 +12,7 @@ import {
   Check, 
   RotateCcw,
   Sparkles,
-  Image as ImageIcon
+  Palette
 } from 'lucide-react';
 import { Asset, Investment } from '../../types';
 import { AssetIcon } from '../AssetIcon';
@@ -41,25 +41,150 @@ const COLOR_PRESETS = [
 ];
 
 const EMOJI_PRESETS = [
-  { label: 'Emas / Bullion', value: '🪙' },
-  { label: 'Bitcoin', value: '₿' },
-  { label: 'S&P 500 / Saham', value: '📈' },
-  { label: 'Perusahaan', value: '🏢' },
-  { label: 'Bank / Deposito', value: '🏦' },
-  { label: 'Uang Tunai / Kas', value: '💵' },
-  { label: 'Crypto / Altcoin', value: '💎' },
-  { label: 'Perak / Silver', value: '🥈' },
-  { label: 'Komoditas / Minyak', value: '🛢️' },
-  { label: 'Properti / Real Estate', value: '🏡' },
-  { label: 'Teknologi / Web3', value: '🚀' },
-  { label: 'Obligasi / SBN', value: '📜' },
+  { label: 'Emas / Bullion', value: '🪙', color: '#EAB308' },
+  { label: 'Bitcoin', value: '₿', color: '#F7931A' },
+  { label: 'S&P 500 / Saham', value: '📈', color: '#3B82F6' },
+  { label: 'Perusahaan', value: '🏢', color: '#6366F1' },
+  { label: 'Bank / Deposito', value: '🏦', color: '#10B981' },
+  { label: 'Uang Tunai / Kas', value: '💵', color: '#059669' },
+  { label: 'Crypto / Altcoin', value: '💎', color: '#8B5CF6' },
+  { label: 'Perak / Silver', value: '🥈', color: '#64748B' },
+  { label: 'Komoditas / Minyak', value: '🛢️', color: '#334155' },
+  { label: 'Properti / Real Estate', value: '🏡', color: '#F59E0B' },
+  { label: 'Teknologi / Web3', value: '🚀', color: '#EC4899' },
+  { label: 'Obligasi / SBN', value: '📜', color: '#14B8A6' },
 ];
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+/**
+ * Extracts the most vibrant / dominant color from an HTMLCanvasElement or HTMLImageElement.
+ * Ignores transparency and filters out neutral white/black backgrounds to prioritize vibrant logo colors.
+ */
+function extractDominantColor(source: HTMLCanvasElement | HTMLImageElement): string {
+  let canvas: HTMLCanvasElement;
+  let ctx: CanvasRenderingContext2D | null;
+
+  if (source instanceof HTMLCanvasElement) {
+    canvas = source;
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
+  } else {
+    canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return '#059669';
+    ctx.drawImage(source, 0, 0, 64, 64);
+  }
+
+  if (!ctx) return '#059669';
+
+  let imgData: ImageData;
+  try {
+    imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  } catch {
+    return '#059669';
+  }
+
+  const data = imgData.data;
+  const buckets = new Map<string, { r: number; g: number; b: number; count: number; score: number }>();
+  let fallbackR = 0;
+  let fallbackG = 0;
+  let fallbackB = 0;
+  let fallbackCount = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    // Ignore transparent pixels
+    if (a < 100) continue;
+
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    fallbackR += r;
+    fallbackG += g;
+    fallbackB += b;
+    fallbackCount++;
+
+    // Ignore white / very light gray backgrounds (r, g, b all > 238)
+    if (r > 238 && g > 238 && b > 238) continue;
+    // Ignore pure black / very dark shadows (r, g, b all < 20)
+    if (r < 20 && g < 20 && b < 20) continue;
+
+    // Saturation calculation: (max - min) / max
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    const saturation = max === 0 ? 0 : delta / max;
+
+    // Quantize RGB in 16-step intervals (0, 16, 32, ..., 240)
+    const qr = (r >> 4) << 4;
+    const qg = (g >> 4) << 4;
+    const qb = (b >> 4) << 4;
+    const key = `${qr},${qg},${qb}`;
+
+    // Score: give strong multiplier to saturated colors over dull grays
+    const weight = 1 + saturation * 4;
+
+    const existing = buckets.get(key);
+    if (existing) {
+      existing.r += r;
+      existing.g += g;
+      existing.b += b;
+      existing.count += 1;
+      existing.score += weight;
+    } else {
+      buckets.set(key, { r, g, b, count: 1, score: weight });
+    }
+  }
+
+  if (buckets.size === 0) {
+    if (fallbackCount > 0) {
+      return rgbToHex(fallbackR / fallbackCount, fallbackG / fallbackCount, fallbackB / fallbackCount);
+    }
+    return '#059669';
+  }
+
+  let best: { r: number; g: number; b: number; count: number; score: number } | null = null;
+  for (const b of buckets.values()) {
+    if (!best || b.score > best.score) {
+      best = b;
+    }
+  }
+
+  if (!best || best.count === 0) return '#059669';
+  return rgbToHex(best.r / best.count, best.g / best.count, best.b / best.count);
+}
+
+/**
+ * Extracts dominant color from an image URL (supports local public icons or CORS-enabled URLs).
+ */
+function extractColorFromImageUrl(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const hex = extractDominantColor(img);
+        resolve(hex);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error('Gagal memuat URL gambar'));
+    img.src = src;
+  });
+}
 
 /**
  * Resizes and compresses uploaded image file to max 160x160 square PNG data URL
- * to avoid exceeding browser localStorage storage limits.
+ * and automatically extracts dominant color.
  */
-function compressImageFile(file: File, maxSize = 160): Promise<string> {
+function compressImageFile(file: File, maxSize = 160): Promise<{ dataUrl: string; dominantColor: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -83,11 +208,13 @@ function compressImageFile(file: File, maxSize = 160): Promise<string> {
         canvas.height = h;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve(e.target?.result as string);
+          resolve({ dataUrl: e.target?.result as string, dominantColor: '#059669' });
           return;
         }
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/png', 0.9));
+        const dataUrl = canvas.toDataURL('image/png', 0.9);
+        const dominantColor = extractDominantColor(canvas);
+        resolve({ dataUrl, dominantColor });
       };
       img.onerror = () => reject(new Error('Gagal memuat gambar'));
       img.src = e.target?.result as string;
@@ -110,18 +237,22 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<Asset['category']>('Crypto');
   const [color, setColor] = useState(COLOR_PRESETS[0]);
+  const [detectedColor, setDetectedColor] = useState<string | null>(null);
   const [icon, setIcon] = useState<string>('');
   const [iconMode, setIconMode] = useState<'upload' | 'url' | 'emoji'>('upload');
   const [urlInput, setUrlInput] = useState('');
   const [error, setError] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
 
-  // Edit Icon for existing asset state
+  // Edit Icon & Color for existing asset state
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [confirmDeleteAssetId, setConfirmDeleteAssetId] = useState<string | null>(null);
   const [editIconValue, setEditIconValue] = useState<string>('');
+  const [editColorValue, setEditColorValue] = useState<string>(COLOR_PRESETS[0]);
+  const [editDetectedColor, setEditDetectedColor] = useState<string | null>(null);
   const [editUrlInput, setEditUrlInput] = useState('');
   const [editMode, setEditMode] = useState<'upload' | 'url' | 'emoji'>('upload');
+  const [isEditCompressing, setIsEditCompressing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +262,8 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
       setName('');
       setIcon('');
       setUrlInput('');
+      setColor(COLOR_PRESETS[0]);
+      setDetectedColor(null);
       setError('');
       setEditingAssetId(null);
       setConfirmDeleteAssetId(null);
@@ -151,13 +284,34 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
 
     try {
       setIsCompressing(true);
-      const dataUrl = await compressImageFile(file, 160);
+      const { dataUrl, dominantColor } = await compressImageFile(file, 160);
       setIcon(dataUrl);
+      if (dominantColor) {
+        setColor(dominantColor);
+        setDetectedColor(dominantColor);
+      }
     } catch {
       alert('Gagal memproses gambar. Silakan coba file lain.');
     } finally {
       setIsCompressing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle URL change for New Asset
+  const handleUrlChange = (val: string) => {
+    setUrlInput(val);
+    setIcon(val);
+    const clean = val.trim();
+    if (clean.length > 4 && (clean.startsWith('http') || clean.startsWith('/') || clean.startsWith('data:'))) {
+      extractColorFromImageUrl(clean)
+        .then((domColor) => {
+          if (domColor) {
+            setColor(domColor);
+            setDetectedColor(domColor);
+          }
+        })
+        .catch(() => {});
     }
   };
 
@@ -172,30 +326,54 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
     }
 
     try {
-      setIsCompressing(true);
-      const dataUrl = await compressImageFile(file, 160);
+      setIsEditCompressing(true);
+      const { dataUrl, dominantColor } = await compressImageFile(file, 160);
       setEditIconValue(dataUrl);
+      if (dominantColor) {
+        setEditColorValue(dominantColor);
+        setEditDetectedColor(dominantColor);
+      }
     } catch {
       alert('Gagal memproses gambar. Silakan coba file lain.');
     } finally {
-      setIsCompressing(false);
+      setIsEditCompressing(false);
       if (editFileInputRef.current) editFileInputRef.current.value = '';
     }
   };
 
-  // Start editing icon for an asset
+  // Handle URL change for Editing Existing Asset
+  const handleEditUrlChange = (val: string) => {
+    setEditUrlInput(val);
+    setEditIconValue(val);
+    const clean = val.trim();
+    if (clean.length > 4 && (clean.startsWith('http') || clean.startsWith('/') || clean.startsWith('data:'))) {
+      extractColorFromImageUrl(clean)
+        .then((domColor) => {
+          if (domColor) {
+            setEditColorValue(domColor);
+            setEditDetectedColor(domColor);
+          }
+        })
+        .catch(() => {});
+    }
+  };
+
+  // Start editing an asset
   const handleStartEditIcon = (asset: Asset) => {
     setEditingAssetId(asset.id);
     setEditIconValue(asset.icon || '');
-    setEditUrlInput(asset.icon?.startsWith('http') ? asset.icon : '');
-    setEditMode('upload');
+    setEditUrlInput(asset.icon?.startsWith('http') || asset.icon?.startsWith('/') ? asset.icon : '');
+    setEditColorValue(asset.color || COLOR_PRESETS[0]);
+    setEditDetectedColor(null);
+    setEditMode(asset.icon?.startsWith('data:') ? 'upload' : asset.icon?.startsWith('http') || asset.icon?.startsWith('/') ? 'url' : 'emoji');
   };
 
-  // Save edited icon for existing asset
+  // Save edited asset (icon + color)
   const handleSaveEditIcon = (asset: Asset) => {
     if (!onUpdateAsset) return;
     onUpdateAsset({
       ...asset,
+      color: editColorValue,
       icon: editIconValue.trim() !== '' ? editIconValue.trim() : undefined,
     });
     setEditingAssetId(null);
@@ -204,12 +382,21 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   // Reset icon to Stitch default
   const handleResetToDefault = (asset: Asset) => {
     let defaultIcon = '';
+    let defaultColor = COLOR_PRESETS[0];
     const lower = asset.name.toLowerCase();
-    if (lower.includes('btc') || lower.includes('bitcoin')) defaultIcon = '/icons/btc.png';
-    else if (lower.includes('emas') || lower.includes('gold')) defaultIcon = '/icons/emas.png';
-    else if (lower.includes('voo') || lower.includes('vanguard')) defaultIcon = '/icons/voo.png';
+    if (lower.includes('btc') || lower.includes('bitcoin')) {
+      defaultIcon = '/icons/btc.png';
+      defaultColor = '#F7931A';
+    } else if (lower.includes('emas') || lower.includes('gold')) {
+      defaultIcon = '/icons/emas.png';
+      defaultColor = '#EAB308';
+    } else if (lower.includes('voo') || lower.includes('vanguard')) {
+      defaultIcon = '/icons/voo.png';
+      defaultColor = '#991B1B';
+    }
 
     setEditIconValue(defaultIcon);
+    setEditColorValue(defaultColor);
     if (!defaultIcon) setEditUrlInput('');
   };
 
@@ -236,6 +423,8 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
     setName('');
     setIcon('');
     setUrlInput('');
+    setDetectedColor(null);
+    setColor(COLOR_PRESETS[0]);
     setError('');
   };
 
@@ -292,7 +481,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Icon, Name & Category */}
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative group cursor-pointer" onClick={() => handleStartEditIcon(asset)} title="Klik untuk ubah ikon">
+                      <div className="relative group cursor-pointer" onClick={() => handleStartEditIcon(asset)} title="Klik untuk ubah ikon & warna">
                         <AssetIcon 
                           name={asset.name} 
                           category={asset.category} 
@@ -309,57 +498,36 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-bold text-slate-900 truncate">{asset.name}</span>
                           <span 
-                            className="h-2 w-2 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: asset.color }} 
+                            className="h-2.5 w-2.5 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: asset.color }}
+                            title={`Warna alokasi: ${asset.color}`}
                           />
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-semibold text-slate-600 uppercase">
-                            {asset.category}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {txCount} transaksi
-                          </span>
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <span className="capitalize">{asset.category}</span>
+                          <span>•</span>
+                          <span>{txCount} transaksi</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          setConfirmDeleteAssetId(null);
-                          if (isEditingThis) {
-                            setEditingAssetId(null);
-                          } else {
-                            handleStartEditIcon(asset);
-                          }
-                        }}
-                        className={`rounded-xl px-2.5 py-1.5 text-xs font-semibold border transition flex items-center gap-1.5 ${
-                          isEditingThis 
-                            ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs' 
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-emerald-700'
-                        }`}
+                        onClick={() => handleStartEditIcon(asset)}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 text-xs font-semibold transition"
+                        title="Ubah ikon & warna aset"
                       >
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        <span>{isEditingThis ? 'Tutup' : 'Ganti Ikon'}</span>
+                        Ubah
                       </button>
-
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditingAssetId(null);
-                          setConfirmDeleteAssetId(confirmDeleteAssetId === asset.id ? null : asset.id);
-                        }}
-                        title={`Hapus aset ${asset.name}`}
-                        className={`rounded-xl p-1.5 border transition ${
-                          confirmDeleteAssetId === asset.id
-                            ? 'bg-rose-50 border-rose-200 text-rose-700'
-                            : 'bg-white border-slate-200 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600'
-                        }`}
+                        onClick={() => setConfirmDeleteAssetId(asset.id)}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                        title="Hapus aset"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -392,13 +560,13 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                     </div>
                   )}
 
-                  {/* Inline Icon Editor Drawer */}
+                  {/* Inline Icon & Color Editor Drawer */}
                   {isEditingThis && (
-                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3.5 animate-in fade-in">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3.5 animate-in fade-in space-y-3">
+                      <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                           <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Pilih Ikon Baru untuk {asset.name}</span>
+                          <span>Pilih Ikon & Warna untuk {asset.name}</span>
                         </span>
                         <button
                           type="button"
@@ -411,7 +579,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                       </div>
 
                       {/* Mode Tabs */}
-                      <div className="flex items-center gap-1 rounded-lg bg-white p-1 border border-slate-200 mb-3 text-xs">
+                      <div className="flex items-center gap-1 rounded-lg bg-white p-1 border border-slate-200 text-xs">
                         <button
                           type="button"
                           onClick={() => setEditMode('upload')}
@@ -448,37 +616,39 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                       {editMode === 'upload' && (
                         <div className="space-y-2">
                           <input 
-                            type="file" 
-                            ref={editFileInputRef} 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={handleEditFileUpload} 
+                            ref={editFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEditFileUpload}
+                            className="hidden"
                           />
                           <button
                             type="button"
-                            disabled={isCompressing}
                             onClick={() => editFileInputRef.current?.click()}
-                            className="w-full rounded-xl border border-dashed border-emerald-300 bg-white py-3 px-4 text-xs font-semibold text-emerald-800 hover:bg-emerald-50/80 transition flex items-center justify-center gap-2"
+                            disabled={isEditCompressing}
+                            className="w-full rounded-xl border border-dashed border-emerald-400 bg-white py-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition flex items-center justify-center gap-2"
                           >
                             <Upload className="h-4 w-4" />
-                            <span>{isCompressing ? 'Memproses gambar...' : 'Pilih File Gambar dari Komputer / HP'}</span>
+                            <span>{isEditCompressing ? 'Memproses gambar & warna dominan...' : 'Pilih Gambar Baru dari Komputer'}</span>
                           </button>
-                          <p className="text-[10px] text-slate-500 text-center">Format didukung: PNG, JPG, WebP, SVG (otomatis dioptimalkan)</p>
+                          <p className="text-[10px] text-slate-500 text-center">
+                            Warna dominan gambar otomatis diekstrak sebagai warna indikator.
+                          </p>
                         </div>
                       )}
 
                       {editMode === 'url' && (
-                        <div className="flex items-center gap-2">
-                          <input
+                        <div className="space-y-1.5">
+                          <input 
                             type="url"
                             placeholder="https://... atau /icons/btc.png"
                             value={editUrlInput}
-                            onChange={(e) => {
-                              setEditUrlInput(e.target.value);
-                              setEditIconValue(e.target.value);
-                            }}
-                            className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 bg-white focus:border-emerald-600 focus:outline-none"
+                            onChange={(e) => handleEditUrlChange(e.target.value)}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 bg-white focus:border-emerald-600 focus:outline-none"
                           />
+                          <p className="text-[10px] text-slate-400">
+                            Masukkan URL gambar atau path ikon lokal.
+                          </p>
                         </div>
                       )}
 
@@ -488,7 +658,10 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                             <button
                               key={item.value}
                               type="button"
-                              onClick={() => setEditIconValue(item.value)}
+                              onClick={() => {
+                                setEditIconValue(item.value);
+                                if (item.color) setEditColorValue(item.color);
+                              }}
                               title={item.label}
                               className={`p-2 rounded-lg text-lg hover:bg-emerald-50 transition border ${
                                 editIconValue === item.value 
@@ -502,15 +675,78 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                         </div>
                       )}
 
+                      {/* Color Selector in Edit Drawer */}
+                      <div className="pt-2 border-t border-emerald-200/60">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[11px] font-bold text-slate-700">
+                            Warna Indikator Aset
+                          </label>
+                          {editDetectedColor && (
+                            <button
+                              type="button"
+                              onClick={() => setEditColorValue(editDetectedColor)}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 transition bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200"
+                              title="Gunakan warna otomatis dari gambar"
+                            >
+                              <Sparkles className="h-3 w-3 text-emerald-700" />
+                              <span>Warna Gambar: {editDetectedColor}</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {COLOR_PRESETS.map((c) => (
+                            <button
+                              key={`edit-${c}`}
+                              type="button"
+                              onClick={() => setEditColorValue(c)}
+                              className={`h-5 w-5 rounded-full transition-transform ${
+                                editColorValue.toUpperCase() === c.toUpperCase()
+                                  ? 'scale-125 ring-2 ring-emerald-600 ring-offset-2'
+                                  : 'hover:scale-110'
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+
+                          <div className="h-4 w-px bg-slate-200 mx-0.5" />
+
+                          {/* Custom Color Input Pill */}
+                          <label 
+                            className={`relative flex items-center gap-1.5 rounded-lg border px-2 py-0.5 cursor-pointer transition shadow-2xs ${
+                              !COLOR_PRESETS.some((c) => c.toUpperCase() === editColorValue.toUpperCase())
+                                ? 'border-emerald-600 bg-emerald-50/60 ring-1 ring-emerald-600'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                            }`}
+                            title="Pilih warna kustom bebas"
+                          >
+                            <div 
+                              className="h-3.5 w-3.5 rounded-full border border-black/10 flex-shrink-0"
+                              style={{ backgroundColor: editColorValue }}
+                            />
+                            <span className="text-[10px] font-mono font-bold text-slate-800 uppercase">
+                              {editColorValue}
+                            </span>
+                            <Palette className="h-3 w-3 text-slate-400" />
+                            <input
+                              type="color"
+                              value={editColorValue.startsWith('#') && editColorValue.length === 7 ? editColorValue : '#059669'}
+                              onChange={(e) => setEditColorValue(e.target.value.toUpperCase())}
+                              className="sr-only"
+                            />
+                          </label>
+                        </div>
+                      </div>
+
                       {/* Preview & Save Bar */}
-                      <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between">
+                      <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-slate-600">Pratinjau:</span>
                           <AssetIcon 
                             name={asset.name} 
                             category={asset.category} 
                             icon={editIconValue} 
-                            color={asset.color}
+                            color={editColorValue} 
                             size={32} 
                           />
                         </div>
@@ -529,7 +765,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                             className="rounded-lg bg-emerald-800 px-3.5 py-1 text-xs font-bold text-white hover:bg-emerald-900 transition flex items-center gap-1 shadow-2xs"
                           >
                             <Check className="h-3.5 w-3.5" />
-                            <span>Simpan Ikon</span>
+                            <span>Simpan Perubahan</span>
                           </button>
                         </div>
                       </div>
@@ -557,64 +793,78 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Nama Aset */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Nama Aset</label>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Nama Aset (Ticker / Kode)
+              </label>
               <input
                 type="text"
-                placeholder="Misal: SBN, BBCA, Emas"
+                placeholder="Contoh: BBCA, ETH, SBN, Properti"
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
                   setError('');
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition placeholder:text-slate-300"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition placeholder:font-normal placeholder:text-slate-400"
               />
             </div>
+
+            {/* Kategori */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Kategori</label>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Kategori Instrumen
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as Asset['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:border-emerald-600 focus:outline-none transition cursor-pointer"
               >
-                <option value="Crypto">Crypto</option>
-                <option value="Emas">Emas</option>
-                <option value="Saham">Saham</option>
-                <option value="ETF">ETF</option>
+                <option value="Crypto">Crypto (Mata Uang Kripto)</option>
+                <option value="Emas">Emas (Logam Mulia / Bullion)</option>
+                <option value="ETF">ETF / Reksadana Saham</option>
+                <option value="Saham">Saham Individual (IDX / US)</option>
+                <option value="Properti">Properti / Real Estate</option>
+                <option value="Obligasi">Obligasi / SBN / Sukuk</option>
+                <option value="Kas">Kas / Deposito / Tabungan</option>
                 <option value="Lainnya">Lainnya</option>
               </select>
             </div>
           </div>
 
-          {/* Icon Option for New Asset */}
+          {/* Icon Selector */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11px] font-bold text-slate-700">Ikon Aset</label>
-              <div className="flex items-center gap-1 rounded-lg bg-slate-200/70 p-0.5 text-[10px]">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-bold text-slate-700">
+                Pilih Ikon Aset
+              </label>
+              <div className="flex items-center gap-1 text-[11px]">
                 <button
                   type="button"
                   onClick={() => setIconMode('upload')}
-                  className={`rounded-md px-2 py-0.5 font-bold transition ${
-                    iconMode === 'upload' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2 py-0.5 rounded-md font-semibold transition ${
+                    iconMode === 'upload' ? 'bg-emerald-100 text-emerald-800' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Upload File
                 </button>
+                <span>•</span>
                 <button
                   type="button"
                   onClick={() => setIconMode('url')}
-                  className={`rounded-md px-2 py-0.5 font-bold transition ${
-                    iconMode === 'url' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2 py-0.5 rounded-md font-semibold transition ${
+                    iconMode === 'url' ? 'bg-emerald-100 text-emerald-800' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  URL Link
+                  URL Gambar
                 </button>
+                <span>•</span>
                 <button
                   type="button"
                   onClick={() => setIconMode('emoji')}
-                  className={`rounded-md px-2 py-0.5 font-bold transition ${
-                    iconMode === 'emoji' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2 py-0.5 rounded-md font-semibold transition ${
+                    iconMode === 'emoji' ? 'bg-emerald-100 text-emerald-800' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Emoji
@@ -622,31 +872,29 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* Preview */}
+            <div className="flex items-center gap-2">
               <div className="flex-shrink-0">
-                <AssetIcon name={name || 'Aset'} category={category} icon={icon} color={color} size={36} />
+                <AssetIcon name={name || 'A'} category={category} icon={icon} color={color} size={36} />
               </div>
 
-              {/* Selector according to mode */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1">
                 {iconMode === 'upload' && (
                   <div>
                     <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handleFileUpload} 
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
                     />
                     <button
                       type="button"
-                      disabled={isCompressing}
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition flex items-center justify-center gap-1.5"
+                      disabled={isCompressing}
+                      className="w-full rounded-xl border border-dashed border-slate-300 bg-white py-2 px-3 text-xs font-semibold text-slate-600 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/20 transition flex items-center justify-center gap-2"
                     >
                       <Upload className="h-3.5 w-3.5 text-slate-500" />
-                      <span>{isCompressing ? 'Mengompres...' : icon ? 'Ganti File Gambar' : 'Pilih File Gambar'}</span>
+                      <span>{isCompressing ? 'Mengekstrak warna dominan...' : icon ? 'Ganti File Gambar' : 'Pilih File Gambar'}</span>
                     </button>
                   </div>
                 )}
@@ -656,10 +904,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                     type="url"
                     placeholder="https://... atau /icons/btc.png"
                     value={urlInput}
-                    onChange={(e) => {
-                      setUrlInput(e.target.value);
-                      setIcon(e.target.value);
-                    }}
+                    onChange={(e) => handleUrlChange(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition"
                   />
                 )}
@@ -670,7 +915,13 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                       <button
                         key={item.value}
                         type="button"
-                        onClick={() => setIcon(item.value)}
+                        onClick={() => {
+                          setIcon(item.value);
+                          if (item.color) {
+                            setColor(item.color);
+                            setDetectedColor(null);
+                          }
+                        }}
                         className={`h-7 w-7 rounded-lg text-sm flex items-center justify-center transition border flex-shrink-0 ${
                           icon === item.value 
                             ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600' 
@@ -690,6 +941,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                   onClick={() => {
                     setIcon('');
                     setUrlInput('');
+                    setDetectedColor(null);
                   }}
                   className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 text-xs transition"
                   title="Hapus ikon kustom"
@@ -702,21 +954,66 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
 
           {/* Color Indicator */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-              Warna Indikator Donut Alokasi
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-slate-700">
+                Warna Indikator Donut Alokasi
+              </label>
+              {detectedColor && (
+                <button
+                  type="button"
+                  onClick={() => setColor(detectedColor)}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 transition bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200"
+                  title="Klik untuk menggunakan warna dominan yang diekstrak dari gambar"
+                >
+                  <Sparkles className="h-3 w-3 text-emerald-700" />
+                  <span>Warna Gambar: {detectedColor}</span>
+                </button>
+              )}
+            </div>
+
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Presets */}
               {COLOR_PRESETS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
                   className={`h-5 w-5 rounded-full transition-transform ${
-                    color === c ? 'scale-125 ring-2 ring-emerald-600 ring-offset-2' : 'hover:scale-110'
+                    color.toUpperCase() === c.toUpperCase()
+                      ? 'scale-125 ring-2 ring-emerald-600 ring-offset-2'
+                      : 'hover:scale-110'
                   }`}
                   style={{ backgroundColor: c }}
+                  title={`Warna preset: ${c}`}
                 />
               ))}
+
+              <div className="h-4 w-px bg-slate-200 mx-0.5" />
+
+              {/* Custom Color Input Pill */}
+              <label 
+                className={`relative flex items-center gap-1.5 rounded-xl border px-2.5 py-1 cursor-pointer transition shadow-2xs ${
+                  !COLOR_PRESETS.some((c) => c.toUpperCase() === color.toUpperCase())
+                    ? 'border-emerald-600 bg-emerald-50/60 ring-1 ring-emerald-600'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+                title="Pilih warna kustom bebas (Color Picker)"
+              >
+                <div 
+                  className="h-3.5 w-3.5 rounded-full border border-black/10 shadow-2xs flex-shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-[11px] font-mono font-bold text-slate-800 uppercase">
+                  {color}
+                </span>
+                <Palette className="h-3 w-3 text-slate-400" />
+                <input
+                  type="color"
+                  value={color.startsWith('#') && color.length === 7 ? color : '#059669'}
+                  onChange={(e) => setColor(e.target.value.toUpperCase())}
+                  className="sr-only"
+                />
+              </label>
             </div>
           </div>
 
