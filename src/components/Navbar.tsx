@@ -10,8 +10,7 @@ import {
   Upload, 
   RotateCcw,
   Coins,
-  User,
-  Pencil
+  User
 } from 'lucide-react';
 import { exportAllData, importAllData, resetToDefaultData } from '../lib/storage';
 import { getUserInitials } from '../lib/calculations';
@@ -177,12 +176,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               {getUserInitials(userName || 'Syarif Hidayatullah')}
             </div>
             <div className="hidden sm:block text-left leading-tight">
-              <div className="flex items-center gap-1">
-                <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-800 transition">
-                  {userName || 'Syarif Hidayatullah'}
-                </span>
-                <Pencil className="h-2.5 w-2.5 text-slate-400 group-hover:text-emerald-700 transition" />
-              </div>
+              <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-800 transition">
+                {userName || 'Syarif Hidayatullah'}
+              </span>
               <span className="block text-[10px] text-emerald-700 font-semibold">Verified Investor</span>
             </div>
           </button>
