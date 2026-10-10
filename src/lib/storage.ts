@@ -54,7 +54,25 @@ export function getStoredAssets(): Asset[] {
       return INITIAL_ASSETS;
     }
     const parsed: Asset[] = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_ASSETS;
+    if (!Array.isArray(parsed)) return INITIAL_ASSETS;
+
+    // Auto-heal data anomaly: e.g. BTC or Bitcoin accidentally set to 'ETF'
+    let hasHealed = false;
+    const healed = parsed.map((a) => {
+      const lower = (a.name || '').trim().toLowerCase();
+      if ((lower === 'btc' || lower === 'bitcoin' || lower.startsWith('btc ')) && a.category !== 'Crypto') {
+        hasHealed = true;
+        return { ...a, category: 'Crypto' as const };
+      }
+      return a;
+    });
+
+    if (hasHealed) {
+      saveStoredAssets(healed);
+      return healed;
+    }
+
+    return parsed;
   } catch {
     return INITIAL_ASSETS;
   }

@@ -224,6 +224,67 @@ function compressImageFile(file: File, maxSize = 160): Promise<{ dataUrl: string
   });
 }
 
+/**
+ * Smart automatic category prediction based on asset ticker or name
+ */
+function guessCategoryFromName(rawName: string): Asset['category'] | null {
+  const lower = rawName.trim().toLowerCase();
+  if (!lower) return null;
+  if (
+    lower === 'btc' ||
+    lower === 'bitcoin' ||
+    lower === 'eth' ||
+    lower === 'ethereum' ||
+    lower === 'sol' ||
+    lower === 'solana' ||
+    lower.includes('crypto') ||
+    lower.includes('kripto')
+  ) {
+    return 'Crypto';
+  }
+  if (lower === 'emas' || lower === 'gold' || lower === 'antam' || lower.includes('bullion')) {
+    return 'Emas';
+  }
+  if (
+    lower === 'voo' ||
+    lower === 'spy' ||
+    lower === 'qqq' ||
+    lower === 'vti' ||
+    lower === 'ivv' ||
+    lower.includes('etf') ||
+    lower.includes('reksadana') ||
+    lower.includes('index') ||
+    lower.includes('indeks')
+  ) {
+    return 'ETF';
+  }
+  if (
+    lower.includes('saham') ||
+    lower === 'bbca' ||
+    lower === 'bbri' ||
+    lower === 'bmri' ||
+    lower === 'tlkm' ||
+    lower === 'asii' ||
+    lower === 'aapl' ||
+    lower === 'tsla' ||
+    lower === 'nvda' ||
+    lower === 'msft' ||
+    lower === 'goog'
+  ) {
+    return 'Saham';
+  }
+  if (lower.includes('sbn') || lower.includes('ori') || lower.includes('sukuk') || lower.includes('obligasi')) {
+    return 'Obligasi';
+  }
+  if (lower.includes('kas') || lower.includes('cash') || lower.includes('deposito') || lower.includes('tabungan')) {
+    return 'Kas';
+  }
+  if (lower.includes('properti') || lower.includes('tanah') || lower.includes('rumah') || lower.includes('real estate')) {
+    return 'Properti';
+  }
+  return null;
+}
+
 export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   isOpen,
   onClose,
@@ -244,15 +305,18 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   const [error, setError] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
 
-  // Edit Icon & Color for existing asset state
+  // Edit Asset (Name, Category, Icon & Color) for existing asset state
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [confirmDeleteAssetId, setConfirmDeleteAssetId] = useState<string | null>(null);
+  const [editNameValue, setEditNameValue] = useState<string>('');
+  const [editCategoryValue, setEditCategoryValue] = useState<Asset['category']>('Crypto');
   const [editIconValue, setEditIconValue] = useState<string>('');
   const [editColorValue, setEditColorValue] = useState<string>(COLOR_PRESETS[0]);
   const [editDetectedColor, setEditDetectedColor] = useState<string | null>(null);
   const [editUrlInput, setEditUrlInput] = useState('');
   const [editMode, setEditMode] = useState<'upload' | 'url' | 'emoji'>('upload');
   const [isEditCompressing, setIsEditCompressing] = useState(false);
+  const [editError, setEditError] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -260,6 +324,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setName('');
+      setCategory('Crypto');
       setIcon('');
       setUrlInput('');
       setColor(COLOR_PRESETS[0]);
@@ -267,6 +332,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
       setError('');
       setEditingAssetId(null);
       setConfirmDeleteAssetId(null);
+      setEditError('');
     }
   }, [isOpen]);
 
@@ -361,22 +427,38 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   // Start editing an asset
   const handleStartEditIcon = (asset: Asset) => {
     setEditingAssetId(asset.id);
+    setEditNameValue(asset.name);
+    setEditCategoryValue(asset.category);
     setEditIconValue(asset.icon || '');
     setEditUrlInput(asset.icon?.startsWith('http') || asset.icon?.startsWith('/') ? asset.icon : '');
     setEditColorValue(asset.color || COLOR_PRESETS[0]);
     setEditDetectedColor(null);
     setEditMode(asset.icon?.startsWith('data:') ? 'upload' : asset.icon?.startsWith('http') || asset.icon?.startsWith('/') ? 'url' : 'emoji');
+    setEditError('');
   };
 
-  // Save edited asset (icon + color)
+  // Save edited asset (name, category, icon + color)
   const handleSaveEditIcon = (asset: Asset) => {
     if (!onUpdateAsset) return;
+    const cleanName = editNameValue.trim();
+    if (!cleanName) {
+      setEditError('Nama aset tidak boleh kosong.');
+      return;
+    }
+    if (assets.some((a) => a.id !== asset.id && a.name.toLowerCase() === cleanName.toLowerCase())) {
+      setEditError('Aset dengan nama ini sudah ada.');
+      return;
+    }
+
     onUpdateAsset({
       ...asset,
+      name: cleanName,
+      category: editCategoryValue,
       color: editColorValue,
       icon: editIconValue.trim() !== '' ? editIconValue.trim() : undefined,
     });
     setEditingAssetId(null);
+    setEditError('');
   };
 
   // Reset icon to Stitch default
@@ -421,6 +503,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
     });
 
     setName('');
+    setCategory('Crypto');
     setIcon('');
     setUrlInput('');
     setDetectedColor(null);
@@ -566,7 +649,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                           <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Pilih Ikon & Warna untuk {asset.name}</span>
+                          <span>Ubah Detail & Ikon untuk {asset.name}</span>
                         </span>
                         <button
                           type="button"
@@ -576,6 +659,49 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                           <RotateCcw className="h-3 w-3" />
                           <span>Reset Default</span>
                         </button>
+                      </div>
+
+                      {/* Name & Category Inputs in Edit Drawer */}
+                      {editError && (
+                        <div className="rounded-xl bg-rose-50 p-2.5 text-xs font-bold text-rose-700 border border-rose-200">
+                          {editError}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Nama Aset (Ticker / Kode)
+                          </label>
+                          <input
+                            type="text"
+                            value={editNameValue}
+                            onChange={(e) => {
+                              setEditNameValue(e.target.value);
+                              setEditError('');
+                            }}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Kategori Instrumen
+                          </label>
+                          <select
+                            value={editCategoryValue}
+                            onChange={(e) => setEditCategoryValue(e.target.value as Asset['category'])}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-2xs focus:border-emerald-600 focus:outline-none transition cursor-pointer"
+                          >
+                            <option value="Crypto">Crypto (Mata Uang Kripto)</option>
+                            <option value="Emas">Emas (Logam Mulia / Bullion)</option>
+                            <option value="ETF">ETF / Reksadana Saham</option>
+                            <option value="Saham">Saham Individual (IDX / US)</option>
+                            <option value="Properti">Properti / Real Estate</option>
+                            <option value="Obligasi">Obligasi / SBN / Sukuk</option>
+                            <option value="Kas">Kas / Deposito / Tabungan</option>
+                            <option value="Lainnya">Lainnya</option>
+                          </select>
+                        </div>
                       </div>
 
                       {/* Mode Tabs */}
@@ -743,8 +869,8 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-slate-600">Pratinjau:</span>
                           <AssetIcon 
-                            name={asset.name} 
-                            category={asset.category} 
+                            name={editNameValue || asset.name} 
+                            category={editCategoryValue} 
                             icon={editIconValue} 
                             color={editColorValue} 
                             size={32} 
@@ -804,8 +930,13 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                 placeholder="Contoh: BBCA, ETH, SBN, Properti"
                 value={name}
                 onChange={(e) => {
-                  setName(e.target.value);
+                  const val = e.target.value;
+                  setName(val);
                   setError('');
+                  const guessed = guessCategoryFromName(val);
+                  if (guessed) {
+                    setCategory(guessed);
+                  }
                 }}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition placeholder:font-normal placeholder:text-slate-400"
               />

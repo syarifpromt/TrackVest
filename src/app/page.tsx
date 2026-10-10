@@ -190,30 +190,40 @@ export default function Home() {
       id: `asset-${Date.now()}`,
       createdAt: new Date().toISOString(),
     };
-    const updated = [...assets, newAsset];
-    setAssets(updated);
-    saveStoredAssets(updated);
+    setAssets((prev) => {
+      const updated = [...prev, newAsset];
+      saveStoredAssets(updated);
+      return updated;
+    });
   };
 
   const handleUpdateAsset = (updatedAsset: Asset) => {
-    const updated = assets.map((a) => (a.id === updatedAsset.id ? updatedAsset : a));
-    setAssets(updated);
-    saveStoredAssets(updated);
+    setAssets((prev) => {
+      const updated = prev.map((a) => (a.id === updatedAsset.id ? updatedAsset : a));
+      saveStoredAssets(updated);
+      return updated;
+    });
   };
 
   const handleDeleteAsset = (id: string) => {
-    const updatedAssets = assets.filter((a) => a.id !== id);
-    setAssets(updatedAssets);
-    saveStoredAssets(updatedAssets);
+    setAssets((prev) => {
+      const updatedAssets = prev.filter((a) => a.id !== id);
+      saveStoredAssets(updatedAssets);
+      return updatedAssets;
+    });
 
-    const updatedInvestments = investments.filter((inv) => inv.assetId !== id);
-    setInvestments(updatedInvestments);
-    saveStoredInvestments(updatedInvestments);
+    setInvestments((prev) => {
+      const updatedInvestments = prev.filter((inv) => inv.assetId !== id);
+      saveStoredInvestments(updatedInvestments);
+      return updatedInvestments;
+    });
 
-    const updatedValuations = { ...valuations };
-    delete updatedValuations[id];
-    setValuations(updatedValuations);
-    saveStoredValuations(updatedValuations);
+    setValuations((prev) => {
+      const updatedValuations = { ...prev };
+      delete updatedValuations[id];
+      saveStoredValuations(updatedValuations);
+      return updatedValuations;
+    });
   };
 
   if (!isLoaded) {

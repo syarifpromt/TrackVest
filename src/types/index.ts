@@ -1,7 +1,17 @@
+export type AssetCategory = 
+  | 'Crypto' 
+  | 'Emas' 
+  | 'Saham' 
+  | 'ETF' 
+  | 'Properti' 
+  | 'Obligasi' 
+  | 'Kas' 
+  | 'Lainnya';
+
 export interface Asset {
   id: string;
   name: string;
-  category: 'Crypto' | 'Emas' | 'Saham' | 'ETF' | 'Lainnya';
+  category: AssetCategory;
   color: string;
   icon?: string; // Custom icon: base64 data URL, image URL, or emoji
   createdAt: string;
