@@ -26,7 +26,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   subtitle,
   lastUpdated,
   headerBadge,
-  headerBadgeVariant = 'slate',
+  headerBadgeVariant = 'emerald',
   variant = 'default',
   badgeType = 'none',
   badgeValue,
@@ -48,47 +48,53 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       : 'bg-slate-50 text-slate-600 border-slate-100 group-hover:bg-slate-100/80 group-hover:text-slate-900';
 
   return (
-    <div className="group relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-slate-300 hover:shadow-sm">
-      {/* Tier 1: Top Row (Title, Badges, & Icon) */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+    <div className="group relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-slate-300 hover:shadow-sm flex flex-col justify-between">
+      <div>
+        {/* Tier 1: Top Row (Title on left, Icon on right) */}
+        <div className="flex items-center justify-between gap-2">
           <span className="text-[12px] sm:text-[13px] font-bold text-slate-500 uppercase tracking-wider truncate">
             {title}
           </span>
-          {headerBadge && (
-            <span
-              className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-full text-[10px] tracking-tight ${
-                headerBadgeVariant === 'emerald'
-                  ? 'text-emerald-800 bg-emerald-50 border border-emerald-200/80'
-                  : 'text-slate-600 bg-slate-100 border border-slate-200/80'
-              }`}
-            >
-              <Calendar className="h-2.5 w-2.5 text-slate-500" />
-              <span>{headerBadge}</span>
-            </span>
-          )}
-          {lastUpdated && (
-            <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[10px] tracking-tight">
-              <Clock className="h-2.5 w-2.5 text-emerald-600" />
-              <span>{lastUpdated}</span>
-            </span>
-          )}
+          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors ${iconStyle}`}>
+            {icon}
+          </div>
         </div>
-        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors ${iconStyle}`}>
-          {icon}
-        </div>
-      </div>
 
-      {/* Tier 2: Middle Row (Primary Metric Value) */}
-      <div className="mt-3">
-        <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums ${valueColor}`}>
-          {value}
-        </div>
-        {subtitle && (
-          <div className="mt-1 text-xs text-slate-500">
-            {subtitle}
+        {/* Tier 1.5: Indicator Badge (Placed consistently below the title) */}
+        {(headerBadge || lastUpdated) && (
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+            {headerBadge && (
+              <span
+                className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-full text-[10px] tracking-tight ${
+                  headerBadgeVariant === 'slate'
+                    ? 'text-slate-600 bg-slate-100 border border-slate-200/80'
+                    : 'text-emerald-800 bg-emerald-50 border border-emerald-200/80'
+                }`}
+              >
+                <Calendar className={`h-2.5 w-2.5 ${headerBadgeVariant === 'slate' ? 'text-slate-500' : 'text-emerald-600'}`} />
+                <span>{headerBadge}</span>
+              </span>
+            )}
+            {lastUpdated && (
+              <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[10px] tracking-tight">
+                <Clock className="h-2.5 w-2.5 text-emerald-600" />
+                <span>{lastUpdated}</span>
+              </span>
+            )}
           </div>
         )}
+
+        {/* Tier 2: Middle Row (Primary Metric Value) */}
+        <div className={(headerBadge || lastUpdated) ? 'mt-2.5' : 'mt-3'}>
+          <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums ${valueColor}`}>
+            {value}
+          </div>
+          {subtitle && (
+            <div className="mt-1 text-xs text-slate-500">
+              {subtitle}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tier 3: Bottom Row (Badge & Comparison Context) */}
