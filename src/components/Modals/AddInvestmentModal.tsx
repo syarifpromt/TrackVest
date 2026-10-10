@@ -137,38 +137,56 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 1. Pilih Aset */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-700">Pilih Aset</label>
+          {assets.length === 0 ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-center space-y-2">
+              <p className="text-xs font-bold text-amber-900">Belum ada aset terdaftar</p>
+              <p className="text-[11px] text-amber-700">Silakan tambahkan instrumen aset terlebih dahulu sebelum mencatat modal investasi.</p>
               <button
                 type="button"
                 onClick={() => {
                   onClose();
                   onOpenManageAssets();
                 }}
-                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 transition"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition active:scale-95 shadow-2xs"
               >
-                <Plus className="h-3 w-3 stroke-[2.5]" />
-                <span>Tambah Aset Baru</span>
+                <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                <span>Tambah Aset Sekarang</span>
               </button>
             </div>
-            <div className="relative">
-              <select
-                value={selectedAssetId}
-                onChange={(e) => setSelectedAssetId(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:bg-white focus:outline-none transition pr-10"
-              >
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.category})
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                <ChevronDown className="h-4 w-4" />
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-slate-700">Pilih Aset</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenManageAssets();
+                  }}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 transition"
+                >
+                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Tambah Aset Baru</span>
+                </button>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedAssetId}
+                  onChange={(e) => setSelectedAssetId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:bg-white focus:outline-none transition pr-10"
+                >
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} ({asset.category})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <ChevronDown className="h-4 w-4" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 2. Nominal Investasi */}
           <div>
@@ -186,7 +204,8 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
                 value={amountRaw ? new Intl.NumberFormat('id-ID').format(parseInt(amountRaw, 10)) : ''}
                 onChange={handleAmountChange}
                 required
-                className="w-full bg-transparent py-2.5 pr-3 text-base sm:text-lg font-black text-slate-900 tabular-nums focus:outline-none placeholder:text-slate-300"
+                disabled={assets.length === 0}
+                className="w-full bg-transparent py-2.5 pr-3 text-base sm:text-lg font-black text-slate-900 tabular-nums focus:outline-none placeholder:text-slate-300 disabled:opacity-50"
               />
             </div>
 
@@ -202,7 +221,8 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
                   type="button"
                   key={chip.val}
                   onClick={() => addAmount(chip.val)}
-                  className="rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-bold text-slate-600 shadow-2xs hover:bg-emerald-50/40 hover:border-emerald-300 hover:text-emerald-800 transition active:scale-95"
+                  disabled={assets.length === 0}
+                  className="rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-bold text-slate-600 shadow-2xs hover:bg-emerald-50/40 hover:border-emerald-300 hover:text-emerald-800 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {chip.label}
                 </button>
@@ -210,47 +230,49 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
             </div>
 
             {/* Live Estimasi Modal Aset Baru */}
-            <div className="mt-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/35 p-4 sm:p-4.5 transition-all">
-              {/* Rincian Modal Sebelum & Tambahan */}
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">
-                    Modal {selectedAsset?.name || 'Aset'} Sebelumnya:
-                  </span>
-                  <span className="font-bold text-slate-700 tabular-nums">
-                    {formatIDR(currentAssetInvested)}
-                  </span>
+            {assets.length > 0 && (
+              <div className="mt-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/35 p-4 sm:p-4.5 transition-all">
+                {/* Rincian Modal Sebelum & Tambahan */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">
+                      Modal {selectedAsset?.name || 'Aset'} Sebelumnya:
+                    </span>
+                    <span className="font-bold text-slate-700 tabular-nums">
+                      {formatIDR(currentAssetInvested)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-emerald-700">
+                      + Tambahan Sekarang:
+                    </span>
+                    <span className="font-extrabold text-emerald-700 tabular-nums">
+                      {numericAmount > 0 ? `+${formatIDR(numericAmount)}` : '+Rp 0'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-emerald-700">
-                    + Tambahan Sekarang:
-                  </span>
-                  <span className="font-extrabold text-emerald-700 tabular-nums">
-                    {numericAmount > 0 ? `+${formatIDR(numericAmount)}` : '+Rp 0'}
-                  </span>
+
+                {/* Garis Pemisah Proporsional */}
+                <div className="my-3 border-t border-emerald-200/70" />
+
+                {/* Total Akhir */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-900 block truncate">
+                      Total Modal {selectedAsset?.name || 'Aset'} Menjadi:
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Akumulasi seluruh modal yang disetor
+                    </span>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-base sm:text-lg font-black text-emerald-800 tabular-nums tracking-tight">
+                      {formatIDR(newTotalInvested)}
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              {/* Garis Pemisah Proporsional */}
-              <div className="my-3 border-t border-emerald-200/70" />
-
-              {/* Total Akhir */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-xs font-bold text-slate-900 block truncate">
-                    Total Modal {selectedAsset?.name || 'Aset'} Menjadi:
-                  </span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">
-                    Akumulasi seluruh modal yang disetor
-                  </span>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="text-base sm:text-lg font-black text-emerald-800 tabular-nums tracking-tight">
-                    {formatIDR(newTotalInvested)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* 3. Tanggal Transaksi */}
@@ -301,7 +323,8 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
             </button>
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-2.5 text-xs sm:text-[13px] font-bold text-white shadow-xs hover:shadow transition-all duration-200 active:scale-[0.98]"
+              disabled={assets.length === 0 || numericAmount <= 0}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-2.5 text-xs sm:text-[13px] font-bold text-white shadow-xs hover:shadow transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="h-4 w-4 stroke-[2.2]" />
               <span>Simpan Investasi</span>

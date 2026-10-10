@@ -276,7 +276,13 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
             </h4>
           </div>
 
-          <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          {assets.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+              <p className="text-xs font-bold text-slate-700">Belum ada aset terdaftar</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Tambahkan instrumen aset pertama Anda menggunakan formulir di bawah ini.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
             {assets.map((asset) => {
               const txCount = investments.filter((inv) => inv.assetId === asset.id).length;
               const isEditingThis = editingAssetId === asset.id;
@@ -533,6 +539,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Form Tambah Aset Baru */}

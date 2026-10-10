@@ -7,6 +7,7 @@ import {
   Clock,
   Plus,
   Layers,
+  Coins,
   RotateCcw
 } from 'lucide-react';
 import { Asset, Investment, Snapshot } from '../types';
@@ -229,15 +230,36 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
             </div>
 
             {/* Table Header */}
-            <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pb-2 px-1 border-b border-slate-100">
-              <span className="col-span-4">Aset Portofolio</span>
-              <span className="col-span-3 text-right">Modal Terdaftar</span>
-              <span className="col-span-3 text-right">Nilai Sekarang</span>
-              <span className="col-span-2 text-right">Profit / Loss</span>
-            </div>
+            {assetCalculations.length > 0 && (
+              <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pb-2 px-1 border-b border-slate-100">
+                <span className="col-span-4">Aset Portofolio</span>
+                <span className="col-span-3 text-right">Modal Terdaftar</span>
+                <span className="col-span-3 text-right">Nilai Sekarang</span>
+                <span className="col-span-2 text-right">Profit / Loss</span>
+              </div>
+            )}
 
-            {/* Asset Input Rows */}
-            <div className="divide-y divide-slate-100">
+            {/* Asset Input Rows or Empty State */}
+            {assetCalculations.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 mb-3">
+                  <Coins className="h-7 w-7" />
+                </div>
+                <h4 className="text-base font-extrabold text-slate-900">Belum Ada Aset Terdaftar</h4>
+                <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
+                  Tambahkan instrumen aset ke dalam portofolio Anda terlebih dahulu untuk mulai memperbarui valuasi nilai pasar.
+                </p>
+                <button
+                  type="button"
+                  onClick={onOpenManageAssets}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95"
+                >
+                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Tambah Aset Sekarang</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
               {assetCalculations.map(({ asset, invested, curVal, profit, returnPercent }) => {
                 const isProfit = profit !== null && profit > 0;
                 const isLoss = profit !== null && profit < 0;
@@ -320,6 +342,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                 );
               })}
             </div>
+            )}
 
             {/* Bottom Actions in Card */}
             <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">

@@ -28,14 +28,24 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 }) => {
   if (summaries.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-surface">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400 border border-slate-100 mb-3">
-          <Layers className="h-6 w-6" />
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-10 text-center shadow-xs">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 mb-4">
+          <Layers className="h-7 w-7" />
         </div>
-        <h4 className="text-base font-semibold text-slate-800">Belum ada aset dalam portfolio</h4>
-        <p className="mt-1 text-xs text-slate-400">
-          Mulai dengan mencatat modal pertama Anda melalui tombol &quot;Tambah Investasi&quot;.
+        <h4 className="text-base font-extrabold text-slate-900">Belum Ada Aset dalam Portofolio</h4>
+        <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
+          Mulai lacak portofolio Anda dengan menambahkan instrumen investasi pertama Anda.
         </p>
+        {onOpenManageAssets && (
+          <button
+            type="button"
+            onClick={onOpenManageAssets}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95"
+          >
+            <PlusCircle className="h-4 w-4 stroke-[2.2]" />
+            <span>Tambah Aset Pertama</span>
+          </button>
+        )}
       </div>
     );
   }

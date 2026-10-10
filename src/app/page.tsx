@@ -395,7 +395,7 @@ export default function Home() {
                 value={
                   portfolioSummary.hasValuation
                     ? formatPercent(portfolioSummary.totalReturnPercent)
-                    : '0,00%'
+                    : '-'
                 }
                 variant={
                   portfolioSummary.hasValuation

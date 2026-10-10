@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleReset = () => {
-    if (confirm('Kembalikan ke data contoh default? Semua data yang Anda buat akan ditimpa.')) {
+    if (confirm('Kosongkan seluruh data portofolio? Semua aset, transaksi, dan riwayat snapshot akan dihapus.')) {
       resetToDefaultData();
       onDataChanged();
       setShowSettings(false);
@@ -247,7 +247,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50"
                   >
                     <RotateCcw className="h-4 w-4 text-rose-500" />
-                    <span>Reset ke Contoh Default</span>
+                    <span>Kosongkan Seluruh Data</span>
                   </button>
                 </div>
               </>
