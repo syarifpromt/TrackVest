@@ -66,7 +66,6 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
     profit: number;
     returnPercent: number;
     isBaseline?: boolean;
-    isTarget?: boolean;
   }
 
   const milestones: ChartMilestone[] = [];
@@ -99,28 +98,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
         totalValue: snap.totalValue,
         profit: snap.totalProfit,
         returnPercent: snap.totalReturnPercent,
-        isTarget: isLatest && sortedSnapshots.length > 1,
       });
     });
-
-    if (sortedSnapshots.length === 1) {
-      const s = sortedSnapshots[0];
-      const projectedReturn = Math.max(s.totalReturnPercent + 3.23, 10.34);
-      const projectedValue = s.totalInvested * (1 + projectedReturn / 100);
-      const projectedProfit = projectedValue - s.totalInvested;
-      milestones.push({
-        id: 'target-projection',
-        label: 'Proyeksi Target Milestone',
-        date: 'Target Mendatang',
-        displayDate: 'Target Mendatang',
-        shortDate: 'Target',
-        totalInvested: s.totalInvested,
-        totalValue: projectedValue,
-        profit: projectedProfit,
-        returnPercent: projectedReturn,
-        isTarget: true,
-      });
-    }
   } else {
     // 2. SPECIFIC ASSET
     const firstItem = firstSnap.assets?.find((a) => a.assetId === selectedAsset.id);
@@ -157,31 +136,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
         totalValue: value,
         profit: profit,
         returnPercent: returnPercent,
-        isTarget: isLatest && sortedSnapshots.length > 1,
       });
     });
-
-    if (sortedSnapshots.length === 1) {
-      const item = firstSnap.assets?.find((a) => a.assetId === selectedAsset.id);
-      const invested = item ? item.investedAmount : 0;
-      const currentReturn = item ? item.returnPercent : 0;
-      const projectedReturn = Math.max(currentReturn + 3.23, 10.34);
-      const projectedValue = invested * (1 + projectedReturn / 100);
-      const projectedProfit = projectedValue - invested;
-
-      milestones.push({
-        id: 'target-projection',
-        label: `Proyeksi Target ${selectedAsset.name}`,
-        date: 'Target Mendatang',
-        displayDate: 'Target Mendatang',
-        shortDate: 'Target',
-        totalInvested: invested,
-        totalValue: projectedValue,
-        profit: projectedProfit,
-        returnPercent: projectedReturn,
-        isTarget: true,
-      });
-    }
   }
 
   // Check if asset has valid snapshot data
@@ -231,7 +187,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
     : '';
 
   // Default active point is the latest actual snapshot
-  const defaultPointIndex = sortedSnapshots.length === 1 ? 1 : milestones.length - 1;
+  const defaultPointIndex = milestones.length - 1;
   const currentPointIndex = hoveredPoint !== null
     ? hoveredPoint
     : selectedPoint !== null
@@ -480,20 +436,22 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
               <div className="flex items-center gap-1.5 font-medium text-slate-700">
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-900 inline-block" />
-                <span>Titik Awal (Baseline)</span>
+                <span>Titik Awal (Baseline Modal)</span>
               </div>
 
-              <div className="hidden sm:flex items-center gap-1.5 text-slate-400 font-medium">
-                <Compass className="h-3.5 w-3.5 text-slate-400" />
-                <span>Momentum Menengah</span>
-              </div>
+              {milestones.length > 2 && (
+                <div className="hidden sm:flex items-center gap-1.5 text-slate-400 font-medium">
+                  <Compass className="h-3.5 w-3.5 text-slate-400" />
+                  <span>Snapshot Menengah</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-1.5 font-bold" style={{ color: chartColor }}>
                 <span 
                   className="h-2.5 w-2.5 rounded-full inline-block" 
                   style={{ backgroundColor: chartColor }}
                 />
-                <span>Status Saat Ini / Target</span>
+                <span>Status Terkini</span>
               </div>
             </div>
           </div>
