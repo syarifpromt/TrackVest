@@ -10,10 +10,15 @@ import {
   Upload, 
   RotateCcw,
   Coins,
-  User
+  User,
+  LogIn,
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
 import { exportAllData, importAllData, resetToDefaultData } from '../lib/storage';
 import { getUserInitials } from '../lib/calculations';
+import { useAuth } from '../context/AuthContext';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 export type NavTab = 'dashboard' | 'cek-portfolio' | 'riwayat';
 
@@ -25,6 +30,7 @@ interface NavbarProps {
   onOpenAddInvestment?: () => void;
   onOpenCheckPortfolio?: () => void;
   onOpenManageAssets: () => void;
+  onOpenAuthModal?: () => void;
   onDataChanged: () => void;
   transactionCount: number;
   snapshotCount: number;
@@ -38,11 +44,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAddInvestment,
   onOpenCheckPortfolio,
   onOpenManageAssets,
+  onOpenAuthModal,
   onDataChanged,
   transactionCount,
   snapshotCount,
 }) => {
   const [showSettings, setShowSettings] = useState(false);
+  const { user, isAuthenticated, signOut, triggerSync } = useAuth();
 
   const handleExport = () => {
     const dataStr = exportAllData();
@@ -166,23 +174,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Section: User Profile & Settings */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* User Profile Avatar (Clickable to edit name) */}
-            <button
-              type="button"
-              onClick={onOpenEditProfile}
-              title="Klik untuk ubah nama profil"
-              className="group flex items-center gap-2 p-1 sm:p-1.5 -m-1 rounded-xl hover:bg-slate-100 transition text-left cursor-pointer border border-transparent hover:border-slate-200"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 text-white font-bold text-xs ring-2 ring-emerald-100 shadow-xs group-hover:ring-emerald-300 transition">
-                {getUserInitials(userName || 'Syarif Hidayatullah')}
-              </div>
-              <div className="hidden sm:block text-left leading-tight">
-                <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-800 transition">
-                  {userName || 'Syarif Hidayatullah'}
-                </span>
-                <span className="block text-[10px] text-emerald-700 font-semibold">Verified Investor</span>
-              </div>
-            </button>
+            {/* Sync Status Badge */}
+            <SyncStatusBadge />
+
+            {/* User Profile Avatar / Login Button */}
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={onOpenEditProfile}
+                title="Klik untuk ubah nama profil"
+                className="group flex items-center gap-2 p-1 sm:p-1.5 -m-1 rounded-xl hover:bg-slate-100 transition text-left cursor-pointer border border-transparent hover:border-slate-200"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 text-white font-bold text-xs ring-2 ring-emerald-100 shadow-xs group-hover:ring-emerald-300 transition">
+                  {getUserInitials(userName || user?.user_metadata?.full_name || 'TrackVest User')}
+                </div>
+                <div className="hidden sm:block text-left leading-tight">
+                  <span className="block text-xs font-bold text-slate-900 group-hover:text-emerald-800 transition">
+                    {userName || user?.user_metadata?.full_name || 'TrackVest User'}
+                  </span>
+                  <span className="block text-[10px] text-emerald-700 font-semibold truncate max-w-[120px]">
+                    {user?.email || 'Cloud Synced'}
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Masuk</span>
+              </button>
+            )}
 
             {/* Settings / Local Storage Dropdown */}
             <div className="relative">
@@ -200,10 +224,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="fixed inset-0 z-40" 
                     onClick={() => setShowSettings(false)} 
                   />
-                  <div className="absolute right-0 top-10 z-50 w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-lg animate-in fade-in zoom-in-95">
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                      Penyimpanan Data Lokal
+                  <div className="absolute right-0 top-10 z-50 w-60 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-lg animate-in fade-in zoom-in-95">
+                    {isAuthenticated ? (
+                      <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Akun Terhubung</p>
+                        <p className="text-xs font-semibold text-slate-900 truncate">{user?.email}</p>
+                      </div>
+                    ) : (
+                      <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                        <button
+                          onClick={() => {
+                            setShowSettings(false);
+                            onOpenAuthModal?.();
+                          }}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition"
+                        >
+                          <LogIn className="h-3.5 w-3.5" />
+                          <span>Masuk / Sinkronkan</span>
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Penyimpanan Data
                     </div>
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => {
+                          triggerSync();
+                          setShowSettings(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      >
+                        <RefreshCw className="h-4 w-4 text-emerald-600" />
+                        <span>Sinkronkan Sekarang</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setShowSettings(false);
@@ -238,7 +294,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <Upload className="h-4 w-4 text-slate-400" />
                       <span>Pulihkan Data (JSON)</span>
                     </button>
+
                     <div className="my-1 border-t border-slate-100" />
+
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Keluar dari akun Supabase? Data lokal tetap aman di perangkat Anda.')) {
+                            signOut();
+                            setShowSettings(false);
+                          }
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        <LogOut className="h-4 w-4 text-slate-500" />
+                        <span>Keluar (Logout)</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={handleReset}
                       className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50"

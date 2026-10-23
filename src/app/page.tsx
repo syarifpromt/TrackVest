@@ -54,8 +54,12 @@ import { SnapshotDetailModal } from '../components/Modals/SnapshotDetailModal';
 import { ManageAssetsModal } from '../components/Modals/ManageAssetsModal';
 import { CheckPortfolioModal } from '../components/Modals/CheckPortfolioModal';
 import { EditProfileModal } from '../components/Modals/EditProfileModal';
+import { AuthModal } from '../components/Modals/AuthModal';
+import { dataRepository } from '../lib/repository/dataRepository';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
+  const { user, isAuthenticated } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -73,60 +77,52 @@ export default function Home() {
   const [defaultAssetIdForAdd, setDefaultAssetIdForAdd] = useState<string | undefined>(undefined);
   const [isManageAssetsOpen, setIsManageAssetsOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
 
-  // Load state from localStorage on mount
-  const refreshData = () => {
-    setAssets(getStoredAssets());
-    setInvestments(getStoredInvestments());
-    setSnapshots(getStoredSnapshots());
-    setValuations(getStoredValuations());
-    setLastValuationTime(getStoredLastValuationTime());
-    setUserName(getStoredUserName());
+  // Load state from repository on mount and when active user changes
+  const refreshData = async () => {
+    const data = await dataRepository.loadAllData();
+    setAssets(data.assets);
+    setInvestments(data.investments);
+    setSnapshots(data.snapshots);
+    setValuations(data.valuations);
+    setLastValuationTime(data.lastValuationTime);
+    setUserName(data.userName);
+    setIsLoaded(true);
   };
 
-  const handleSaveUserName = (newName: string) => {
-    const clean = newName.trim() || 'Syarif Hidayatullah';
+  const handleSaveUserName = async (newName: string) => {
+    const clean = newName.trim() || 'TrackVest User';
     setUserName(clean);
-    saveStoredUserName(clean);
+    await dataRepository.updateUserName(clean);
   };
 
   useEffect(() => {
     refreshData();
-    setIsLoaded(true);
-  }, []);
+  }, [user?.id]);
 
   // Compute live calculations
   const summaries = computeAssetSummaries(assets, investments, valuations);
   const portfolioSummary = computePortfolioSummary(summaries);
 
   // Handlers
-  const handleSaveInvestment = (data: {
+  const handleSaveInvestment = async (data: {
     assetId: string;
     date: string;
     amount: number;
     note?: string;
   }) => {
-    const newInv: Investment = {
-      id: `inv-${Date.now()}`,
-      assetId: data.assetId,
-      date: data.date,
-      amount: data.amount,
-      note: data.note,
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newInv, ...investments];
-    setInvestments(updated);
-    saveStoredInvestments(updated);
+    const newInv = await dataRepository.addInvestment(data);
+    setInvestments((prev) => [newInv, ...prev]);
   };
 
-  const handleDeleteInvestment = (id: string) => {
-    const updated = investments.filter((inv) => inv.id !== id);
-    setInvestments(updated);
-    saveStoredInvestments(updated);
+  const handleDeleteInvestment = async (id: string) => {
+    await dataRepository.deleteInvestment(id);
+    setInvestments((prev) => prev.filter((inv) => inv.id !== id));
   };
 
-  const handleSaveSnapshot = (data: {
+  const handleSaveSnapshot = async (data: {
     date: string;
     valuations: Record<string, number>;
     overwriteExisting: boolean;
@@ -134,10 +130,8 @@ export default function Home() {
     // 1. Update active valuations & last valuation time
     const updatedValuations = { ...valuations, ...data.valuations };
     setValuations(updatedValuations);
-    saveStoredValuations(updatedValuations);
 
     const nowIso = new Date().toISOString();
-    saveStoredLastValuationTime(nowIso);
     setLastValuationTime(nowIso);
 
     // 2. Compute snapshot items per asset
@@ -163,65 +157,44 @@ export default function Home() {
       totalProfit: snapPortfolio.totalProfit,
       totalReturnPercent: snapPortfolio.totalReturnPercent,
       assets: snapshotItems,
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
     };
 
-    let updatedSnapshots = [...snapshots];
-    const existingIndex = updatedSnapshots.findIndex((s) => s.date === data.date);
-    if (existingIndex >= 0) {
-      updatedSnapshots[existingIndex] = newSnapshot;
-    } else {
-      updatedSnapshots = [newSnapshot, ...updatedSnapshots];
-    }
+    await dataRepository.saveSnapshotAndValuations(newSnapshot, data.valuations, nowIso);
 
-    setSnapshots(updatedSnapshots);
-    saveStoredSnapshots(updatedSnapshots);
-  };
-
-  const handleDeleteSnapshot = (id: string) => {
-    const updated = snapshots.filter((s) => s.id !== id);
-    setSnapshots(updated);
-    saveStoredSnapshots(updated);
-  };
-
-  const handleAddAsset = (assetData: Omit<Asset, 'id' | 'createdAt'>) => {
-    const newAsset: Asset = {
-      ...assetData,
-      id: `asset-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    setAssets((prev) => {
-      const updated = [...prev, newAsset];
-      saveStoredAssets(updated);
-      return updated;
+    setSnapshots((prev) => {
+      const existingIndex = prev.findIndex((s) => s.date === data.date);
+      if (existingIndex >= 0) {
+        const copy = [...prev];
+        copy[existingIndex] = newSnapshot;
+        return copy;
+      }
+      return [newSnapshot, ...prev];
     });
   };
 
-  const handleUpdateAsset = (updatedAsset: Asset) => {
-    setAssets((prev) => {
-      const updated = prev.map((a) => (a.id === updatedAsset.id ? updatedAsset : a));
-      saveStoredAssets(updated);
-      return updated;
-    });
+  const handleDeleteSnapshot = async (id: string) => {
+    await dataRepository.deleteSnapshot(id);
+    setSnapshots((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handleDeleteAsset = (id: string) => {
-    setAssets((prev) => {
-      const updatedAssets = prev.filter((a) => a.id !== id);
-      saveStoredAssets(updatedAssets);
-      return updatedAssets;
-    });
+  const handleAddAsset = async (assetData: Omit<Asset, 'id' | 'createdAt'>) => {
+    const newAsset = await dataRepository.addAsset(assetData);
+    setAssets((prev) => [...prev, newAsset]);
+  };
 
-    setInvestments((prev) => {
-      const updatedInvestments = prev.filter((inv) => inv.assetId !== id);
-      saveStoredInvestments(updatedInvestments);
-      return updatedInvestments;
-    });
+  const handleUpdateAsset = async (updatedAsset: Asset) => {
+    await dataRepository.updateAsset(updatedAsset);
+    setAssets((prev) => prev.map((a) => (a.id === updatedAsset.id ? updatedAsset : a)));
+  };
 
+  const handleDeleteAsset = async (id: string) => {
+    await dataRepository.deleteAsset(id);
+    setAssets((prev) => prev.filter((a) => a.id !== id));
+    setInvestments((prev) => prev.filter((inv) => inv.assetId !== id));
     setValuations((prev) => {
       const updatedValuations = { ...prev };
       delete updatedValuations[id];
-      saveStoredValuations(updatedValuations);
       return updatedValuations;
     });
   };
@@ -259,6 +232,7 @@ export default function Home() {
         setActiveTab={setActiveTab}
         userName={userName}
         onOpenEditProfile={() => setIsEditProfileOpen(true)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenAddInvestment={() => {
           setDefaultAssetIdForAdd(undefined);
           setIsAddInvestmentOpen(true);
@@ -548,6 +522,12 @@ export default function Home() {
         onClose={() => setIsEditProfileOpen(false)}
         currentName={userName}
         onSave={handleSaveUserName}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={refreshData}
       />
     </div>
   );
