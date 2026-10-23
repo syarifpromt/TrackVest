@@ -461,25 +461,21 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
     setEditError('');
   };
 
-  // Reset icon to Stitch default
+  // Reset icon to default (initials)
   const handleResetToDefault = (asset: Asset) => {
-    let defaultIcon = '';
     let defaultColor = COLOR_PRESETS[0];
     const lower = asset.name.toLowerCase();
     if (lower.includes('btc') || lower.includes('bitcoin')) {
-      defaultIcon = '/icons/btc.png';
       defaultColor = '#F7931A';
     } else if (lower.includes('emas') || lower.includes('gold')) {
-      defaultIcon = '/icons/emas.png';
       defaultColor = '#EAB308';
     } else if (lower.includes('voo') || lower.includes('vanguard')) {
-      defaultIcon = '/icons/voo.png';
       defaultColor = '#991B1B';
     }
 
-    setEditIconValue(defaultIcon);
+    setEditIconValue('');
     setEditColorValue(defaultColor);
-    if (!defaultIcon) setEditUrlInput('');
+    setEditUrlInput('');
   };
 
   // Handle Add New Asset
@@ -767,7 +763,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                         <div className="space-y-1.5">
                           <input 
                             type="url"
-                            placeholder="https://... atau /icons/btc.png"
+                            placeholder="https://... (URL gambar)"
                             value={editUrlInput}
                             onChange={(e) => handleEditUrlChange(e.target.value)}
                             className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 bg-white focus:border-emerald-600 focus:outline-none"
@@ -1033,7 +1029,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
                 {iconMode === 'url' && (
                   <input
                     type="url"
-                    placeholder="https://... atau /icons/btc.png"
+                    placeholder="https://... (URL gambar)"
                     value={urlInput}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none transition"

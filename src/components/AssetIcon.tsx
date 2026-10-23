@@ -98,49 +98,7 @@ export const AssetIcon: React.FC<AssetIconProps> = ({
     );
   }
 
-  const lower = (name || '').trim().toLowerCase();
-
-  // 2. Aset Bawaan Sistem yang Sudah Memiliki Gambar Resmi (BTC, Emas, VOO)
-  if (lower === 'btc' || lower === 'bitcoin' || lower.startsWith('btc ')) {
-    return (
-      <img
-        src="/icons/btc.png"
-        alt="BTC"
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-        className={`rounded-full object-contain shadow-2xs flex-shrink-0 ${className}`}
-      />
-    );
-  }
-
-  if (lower === 'emas' || lower === 'gold' || lower === 'antam' || lower.startsWith('emas ')) {
-    return (
-      <img
-        src="/icons/emas.png"
-        alt="Emas"
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-        className={`rounded-full object-contain shadow-2xs flex-shrink-0 ${className}`}
-      />
-    );
-  }
-
-  if (lower === 'voo' || lower === 'vanguard' || lower.startsWith('voo ')) {
-    return (
-      <img
-        src="/icons/voo.png"
-        alt="VOO"
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-        className={`rounded-full object-contain shadow-2xs flex-shrink-0 ${className}`}
-      />
-    );
-  }
-
-  // 3. Khusus Aset Baru Tanpa Ikon Kustom:
+  // 2. Jika tanpa ikon gambar kustom:
   // Otomatis gunakan nama depan / inisial aset sebagai default emblem
   const initials = getAssetInitials(name);
   const fontSize = getInitialsFontSize(initials.length, size);
