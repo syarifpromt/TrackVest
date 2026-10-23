@@ -512,7 +512,7 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
@@ -520,11 +520,11 @@ export const ManageAssetsModal: React.FC<ManageAssetsModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[90dvh] flex flex-col pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
               <Coins className="h-5 w-5 stroke-[2.2]" />
             </div>
             <div>

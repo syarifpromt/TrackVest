@@ -111,7 +111,7 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. Header with Title & Export Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Riwayat & Histori Portofolio
@@ -123,7 +123,7 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
 
         <button
           onClick={handleExportCSV}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition active:scale-95 self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition active:scale-95 w-full sm:w-auto"
         >
           <Download className="h-3.5 w-3.5 text-slate-500" />
           <span>Export {subTab === 'snapshot' ? 'Snapshot' : 'Modal'} (.CSV)</span>
@@ -131,18 +131,18 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
       </div>
 
       {/* 2. Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+      <div className="grid grid-cols-2 gap-2 border-b border-slate-200/80 pb-3 w-full">
         <button
           onClick={() => setSubTab('snapshot')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-2 sm:px-4 py-2.5 text-xs font-bold transition-all ${
             subTab === 'snapshot'
               ? 'bg-emerald-800 text-white shadow-xs'
               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Camera className="h-3.5 w-3.5" />
-          <span>Snapshot Portofolio</span>
-          <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
+          <Camera className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">Snapshot Portofolio</span>
+          <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold flex-shrink-0 ${
             subTab === 'snapshot' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
           }`}>
             {snapshots.length}
@@ -151,15 +151,15 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
 
         <button
           onClick={() => setSubTab('investasi')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-2 sm:px-4 py-2.5 text-xs font-bold transition-all ${
             subTab === 'investasi'
               ? 'bg-emerald-800 text-white shadow-xs'
               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Coins className="h-3.5 w-3.5" />
-          <span>Riwayat Tambah Modal</span>
-          <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
+          <Coins className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">Tambah Modal</span>
+          <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold flex-shrink-0 ${
             subTab === 'investasi' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
           }`}>
             {investments.length}
@@ -298,49 +298,49 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
                   </div>
 
                   {/* 4-Card Metric Strip */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="rounded-xl bg-slate-50 p-3 border border-slate-200/70">
-                      <span className="text-[10px] font-semibold text-slate-400 block uppercase">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 border border-slate-200/70 min-w-0">
+                      <span className="text-[10px] font-semibold text-slate-400 block uppercase truncate">
                         Total Modal
                       </span>
-                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums block mt-0.5">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums block mt-0.5 truncate" title={formatIDR(activeSnapshot.totalInvested)}>
                         {formatIDR(activeSnapshot.totalInvested)}
                       </span>
                     </div>
 
-                    <div className="rounded-xl bg-slate-50 p-3 border border-slate-200/70">
-                      <span className="text-[10px] font-semibold text-slate-400 block uppercase">
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 border border-slate-200/70 min-w-0">
+                      <span className="text-[10px] font-semibold text-slate-400 block uppercase truncate">
                         Nilai Porto
                       </span>
-                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums block mt-0.5">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums block mt-0.5 truncate" title={formatIDR(activeSnapshot.totalValue)}>
                         {formatIDR(activeSnapshot.totalValue)}
                       </span>
                     </div>
 
-                    <div className={`rounded-xl p-3 border ${
+                    <div className={`rounded-xl p-2.5 sm:p-3 border min-w-0 ${
                       activeSnapshot.totalProfit >= 0
                         ? 'bg-emerald-50/70 border-emerald-200/70'
                         : 'bg-rose-50/70 border-rose-200/70'
                     }`}>
-                      <span className="text-[10px] font-semibold text-slate-500 block uppercase">
+                      <span className="text-[10px] font-semibold text-slate-500 block uppercase truncate">
                         Profit / Loss
                       </span>
-                      <span className={`text-xs sm:text-sm font-extrabold tabular-nums block mt-0.5 ${
+                      <span className={`text-xs sm:text-sm font-extrabold tabular-nums block mt-0.5 truncate ${
                         activeSnapshot.totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
-                      }`}>
+                      }`} title={formatIDR(activeSnapshot.totalProfit)}>
                         {activeSnapshot.totalProfit >= 0 ? `+${formatIDR(activeSnapshot.totalProfit)}` : formatIDR(activeSnapshot.totalProfit)}
                       </span>
                     </div>
 
-                    <div className={`rounded-xl p-3 border ${
+                    <div className={`rounded-xl p-2.5 sm:p-3 border min-w-0 ${
                       activeSnapshot.totalReturnPercent >= 0
                         ? 'bg-emerald-50/70 border-emerald-200/70'
                         : 'bg-rose-50/70 border-rose-200/70'
                     }`}>
-                      <span className="text-[10px] font-semibold text-slate-500 block uppercase">
+                      <span className="text-[10px] font-semibold text-slate-500 block uppercase truncate">
                         Return
                       </span>
-                      <span className={`text-xs sm:text-sm font-extrabold tabular-nums block mt-0.5 ${
+                      <span className={`text-xs sm:text-sm font-extrabold tabular-nums block mt-0.5 truncate ${
                         activeSnapshot.totalReturnPercent >= 0 ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
                         {formatPercent(activeSnapshot.totalReturnPercent)}
@@ -418,23 +418,23 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
       {subTab === 'investasi' && (
         <div className="space-y-4">
           {/* Controls Bar: Search, Filter, and Add Button */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-56">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Cari transaksi atau catatan..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-2 text-xs text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none w-56 font-medium"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-2 text-xs text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none font-medium"
                 />
               </div>
 
               <select
                 value={selectedAssetFilter}
                 onChange={(e) => setSelectedAssetFilter(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
+                className="w-full sm:w-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
               >
                 <option value="all">Semua Aset</option>
                 {assets.map((a) => (
@@ -447,7 +447,7 @@ export const RiwayatView: React.FC<RiwayatViewProps> = ({
 
             <button
               onClick={onOpenAddInvestment}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95 self-start sm:self-auto"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95 w-full sm:w-auto min-h-[40px]"
             >
               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Tambah Modal</span>

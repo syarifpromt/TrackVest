@@ -271,14 +271,14 @@ export default function Home() {
       />
 
       {/* Main App Workspace */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3.5 py-4 sm:px-6 sm:py-8 pb-24 md:pb-8">
         {/* VIEW 1: DASHBOARD PORTFOLIO */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* 1. Greeting Hero Banner */}
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs">
-              <div className="space-y-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-7 shadow-xs">
+              <div className="space-y-1.5 sm:space-y-2">
+                <h1 className="text-lg sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-snug">
                   Halo {getFirstName(userName)}, <span className="text-emerald-700">ringkasan portfolio</span> investasimu hari ini
                 </h1>
                 <p className="text-xs sm:text-[13px] text-slate-400 leading-relaxed max-w-xl font-normal">
@@ -288,7 +288,7 @@ export default function Home() {
             </div>
 
             {/* Quick Action Shortcuts Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
               {/* Shortcut 1: Tambah Modal */}
               <button
                 type="button"
@@ -296,7 +296,7 @@ export default function Home() {
                   setDefaultAssetIdForAdd(undefined);
                   setIsAddInvestmentOpen(true);
                 }}
-                className="group flex items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
+                className="group flex items-center gap-3 rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <Plus className="h-5 w-5 stroke-[2.5]" />
@@ -315,7 +315,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setIsCheckPortfolioOpen(true)}
-                className="group flex items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
+                className="group flex items-center gap-3 rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <CheckCircle2 className="h-5 w-5 stroke-[2.2]" />
@@ -334,7 +334,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setIsManageAssetsOpen(true)}
-                className="group flex items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
+                className="group flex items-center gap-3 rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 text-left shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-xs hover:bg-emerald-50/20 active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                   <Coins className="h-5 w-5 stroke-[2.2]" />
@@ -351,7 +351,7 @@ export default function Home() {
             </div>
 
             {/* 2. Top 4 KPI Metric Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
               {/* Card 1: Total Modal */}
               <MetricCard
                 title="Total Modal"
@@ -497,7 +497,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-5 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-200/80 bg-white py-5 mb-16 md:mb-0 text-center text-xs text-slate-400">
         <div className="mx-auto max-w-7xl px-4 flex items-center justify-center">
           <p>© {new Date().getFullYear()} TrackVest — Buku Catatan Portfolio Pribadi • {userName}</p>
         </div>

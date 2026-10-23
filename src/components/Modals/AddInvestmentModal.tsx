@@ -94,7 +94,7 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
@@ -102,20 +102,20 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90dvh] overflow-y-auto pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-7">
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+          className="absolute right-3.5 top-3.5 sm:right-5 sm:top-5 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
         >
           <X className="h-5 w-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="mb-6 pr-8">
+        <div className="mb-5 pr-8">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
               <Plus className="h-5 w-5 stroke-[2.5]" />
             </div>
             <div>
@@ -222,7 +222,7 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
                   key={chip.val}
                   onClick={() => addAmount(chip.val)}
                   disabled={assets.length === 0}
-                  className="rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-bold text-slate-600 shadow-2xs hover:bg-emerald-50/40 hover:border-emerald-300 hover:text-emerald-800 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="rounded-lg border border-slate-200 bg-white py-2 min-h-[38px] text-xs font-bold text-slate-600 shadow-2xs hover:bg-emerald-50/40 hover:border-emerald-300 hover:text-emerald-800 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {chip.label}
                 </button>
@@ -313,18 +313,18 @@ export const AddInvestmentModal: React.FC<AddInvestmentModalProps> = ({
           </div>
 
           {/* Form Actions */}
-          <div className="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+          <div className="mt-6 grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 sm:gap-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+              className="rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition min-h-[44px] flex items-center justify-center"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={assets.length === 0 || numericAmount <= 0}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-2.5 text-xs sm:text-[13px] font-bold text-white shadow-xs hover:shadow transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 py-2.5 px-5 text-xs sm:text-[13px] font-bold text-white shadow-xs hover:shadow transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               <CheckCircle2 className="h-4 w-4 stroke-[2.2]" />
               <span>Simpan Investasi</span>

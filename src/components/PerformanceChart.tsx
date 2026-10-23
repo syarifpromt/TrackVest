@@ -197,12 +197,12 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const activeMilestone = milestones[currentPointIndex] || milestones[defaultPointIndex] || milestones[0];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
       {/* Header Bar with Title and Asset Dropdown Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-2.5">
           <div 
-            className="flex h-8 w-8 items-center justify-center rounded-lg border text-white font-bold transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border text-white font-bold transition-colors flex-shrink-0"
             style={{ 
               backgroundColor: selectedAsset ? selectedAsset.color : '#059669',
               borderColor: selectedAsset ? `${selectedAsset.color}40` : '#10b981'
@@ -214,11 +214,11 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
               <TrendingUp className="h-4 w-4 stroke-[2.5]" />
             )}
           </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
               {selectedAsset ? `Performa ${selectedAsset.name}` : 'Grafik Perkembangan Portfolio'}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 truncate">
               {selectedAsset 
                 ? `Historis trajectory return aset ${selectedAsset.name} per milestone`
                 : 'Historis trajectory return berdasarkan milestone snapshot berkala'}
@@ -228,8 +228,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
         {/* Dropdown Pemilih Aset */}
         {assets.length > 0 && (
-          <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-            <div className="relative">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={selectedAssetId}
                 onChange={(e) => {
@@ -237,7 +237,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   setSelectedPoint(null);
                   setHoveredPoint(null);
                 }}
-                className="appearance-none rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white pl-3.5 pr-8 py-2 text-xs font-bold text-slate-800 shadow-2xs hover:border-slate-300 focus:border-emerald-600 focus:bg-white focus:outline-none cursor-pointer transition"
+                className="w-full sm:w-auto appearance-none rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-white pl-3.5 pr-8 py-2 text-xs font-bold text-slate-800 shadow-2xs hover:border-slate-300 focus:border-emerald-600 focus:bg-white focus:outline-none cursor-pointer transition"
               >
                 <option value="all">Semua Portofolio (Total)</option>
                 {assets.map((asset) => (
@@ -269,9 +269,9 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
       ) : (
         <>
           {/* Dynamic Live Price & Profit Indicator (Top-Left of Chart) */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mt-5 mb-1 sm:mb-2">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mt-4 sm:mt-5 mb-1 sm:mb-2">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-slate-400">
                   {activeMilestone.isBaseline ? `Modal Awal ${selectedAsset ? selectedAsset.name : ''}` : `Di update : ${activeMilestone.displayDate}`}
                 </span>
@@ -283,14 +283,14 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
               </div>
 
               {/* Nilai Porto (Rp...) */}
-              <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums truncate" title={formatIDR(activeMilestone.totalValue)}>
                 {formatIDR(activeMilestone.totalValue)}
               </div>
 
               {/* Di bawahnya: +- Rp... (+-%) */}
-              <div className="flex items-center gap-2 pt-0.5">
+              <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                 <span
-                  className={`inline-flex items-center gap-1 text-xs sm:text-sm font-bold tabular-nums px-2.5 py-0.5 rounded-md transition-colors ${
+                  className={`inline-flex items-center gap-1 text-xs sm:text-sm font-bold tabular-nums px-2.5 py-1 rounded-md transition-colors ${
                     activeMilestone.profit > 0
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
                       : activeMilestone.profit < 0
@@ -300,7 +300,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 >
                   {activeMilestone.profit > 0 && <TrendingUp className="h-3.5 w-3.5 stroke-[2.5]" />}
                   {activeMilestone.profit < 0 && <TrendingDown className="h-3.5 w-3.5 stroke-[2.5]" />}
-                  <span>
+                  <span className="break-all">
                     {activeMilestone.profit > 0
                       ? `+${formatIDR(activeMilestone.profit)} (+${activeMilestone.returnPercent.toFixed(2).replace('.', ',')}%)`
                       : activeMilestone.profit < 0

@@ -118,11 +118,11 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
   const depositDateFormatted = latestInvestmentDate ? formatDate(latestInvestmentDate) : '15 Januari 2026';
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm space-y-4">
       {/* 1. Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
             <PieChart className="h-4 w-4" />
           </div>
           <div>
@@ -137,7 +137,7 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
         <button
           type="button"
           onClick={() => setAllocationMode('snapshot')}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all active:scale-[0.98] ${
             isSnapshotMode
               ? 'bg-white text-emerald-800 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
@@ -149,7 +149,7 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
         <button
           type="button"
           onClick={() => setAllocationMode('modal')}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-1.5 py-2 rounded-lg transition-all active:scale-[0.98] ${
             !isSnapshotMode
               ? 'bg-white text-slate-900 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
@@ -357,7 +357,7 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
                   key={seg.assetId}
                   onMouseEnter={() => setHoveredAssetId(seg.assetId)}
                   onMouseLeave={() => setHoveredAssetId(null)}
-                  className={`flex items-center justify-between rounded-xl p-2.5 transition-all cursor-pointer ${
+                  className={`flex items-center justify-between gap-2 rounded-xl p-2.5 transition-all cursor-pointer ${
                     isHovered
                       ? 'bg-slate-50 ring-1 ring-emerald-200'
                       : 'hover:bg-slate-50/80'
@@ -367,17 +367,17 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
                     <AssetIcon name={seg.name} category={seg.category} icon={seg.icon} color={seg.color} size={28} />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold text-slate-900 truncate">
+                        <p className="text-xs font-bold text-slate-900 truncate max-w-[130px] sm:max-w-none">
                           {seg.name}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                         <p className="text-[10px] text-slate-400 capitalize">
                           {seg.category}
                         </p>
                         {isSnapshotMode && seg.profit !== null && seg.returnPercent !== null && (
                           <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded truncate max-w-[140px] ${
                               seg.profit > 0
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                                 : seg.profit < 0
@@ -386,17 +386,17 @@ export const AssetAllocationChart: React.FC<AssetAllocationChartProps> = ({
                             }`}
                           >
                             {seg.profit > 0
-                              ? `+${formatIDR(seg.profit)} (${Math.abs(seg.returnPercent).toFixed(1).replace('.', ',')}%)`
+                              ? `+${seg.returnPercent.toFixed(1).replace('.', ',')}%`
                               : seg.profit < 0
-                              ? `-${formatIDR(Math.abs(seg.profit))} (-${Math.abs(seg.returnPercent).toFixed(1).replace('.', ',')}%)`
-                              : `Rp 0 (0,0%)`}
+                              ? `${seg.returnPercent.toFixed(1).replace('.', ',')}%`
+                              : `0,0%`}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0 pl-2">
+                  <div className="text-right flex-shrink-0 pl-1">
                     <p className="text-xs font-bold text-slate-900 tabular-nums">
                       {seg.percent.toFixed(1).replace('.', ',')}%
                     </p>

@@ -127,7 +127,7 @@ export const CheckPortfolioModal: React.FC<CheckPortfolioModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
@@ -135,13 +135,13 @@ export const CheckPortfolioModal: React.FC<CheckPortfolioModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-2xl rounded-t-3xl sm:rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[90dvh] flex flex-col pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 flex-shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-brand-600" />
-              <h3 className="text-lg font-bold text-slate-900">Evaluasi Nilai Portfolio</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">Evaluasi Nilai Portfolio</h3>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Perbarui estimasi nilai pasar instrumen aset Anda. Imbal hasil dan pertumbuhan dihitung otomatis.
@@ -183,9 +183,9 @@ export const CheckPortfolioModal: React.FC<CheckPortfolioModalProps> = ({
                   </div>
 
                   {/* Input Nilai Sekarang & Live P/L */}
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-40 sm:w-44 flex rounded-lg shadow-sm">
-                      <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2.5 text-xs font-bold text-slate-600">
+                  <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3">
+                    <div className="relative flex-1 sm:w-44 flex rounded-lg shadow-sm">
+                      <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2.5 text-xs font-bold text-slate-600 select-none">
                         Rp
                       </span>
                       <input
@@ -194,7 +194,7 @@ export const CheckPortfolioModal: React.FC<CheckPortfolioModalProps> = ({
                         placeholder="0"
                         value={inputValues[asset.id] || ''}
                         onChange={(e) => handleInputChange(asset.id, e.target.value)}
-                        className="w-full rounded-r-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 transition focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-500 tabular-nums placeholder:text-slate-300"
+                        className="w-full rounded-r-lg border border-slate-300 bg-white px-2.5 py-2 text-sm sm:text-xs font-semibold text-slate-900 transition focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-500 tabular-nums placeholder:text-slate-300 min-h-[40px]"
                       />
                     </div>
 

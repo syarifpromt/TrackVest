@@ -38,7 +38,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const initials = getUserInitials(name || 'Pengguna');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
@@ -46,7 +46,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-modal animate-in fade-in zoom-in-95">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-modal animate-in fade-in zoom-in-95 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               placeholder="Masukkan nama Anda..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:bg-white focus:outline-none transition"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-sm sm:text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-600 focus:bg-white focus:outline-none transition min-h-[44px]"
             />
           </div>
 
@@ -106,14 +106,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-1/3 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95"
+              className="w-1/3 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95 min-h-[44px]"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={!name.trim()}
-              className="w-2/3 rounded-xl bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-2/3 rounded-xl bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[44px]"
             >
               <CheckCircle2 className="h-4 w-4" />
               <span>Simpan Nama</span>

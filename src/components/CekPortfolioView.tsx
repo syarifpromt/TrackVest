@@ -169,7 +169,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* 1. Header & Date Selection */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Cek & Perbarui Nilai Portofolio
@@ -179,20 +179,20 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
+          <div className="flex flex-1 sm:flex-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs">
             <Calendar className="h-4 w-4 text-emerald-700 flex-shrink-0" />
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="text-xs sm:text-sm font-bold text-slate-800 bg-transparent focus:outline-none"
+              className="w-full text-xs sm:text-sm font-bold text-slate-800 bg-transparent focus:outline-none"
             />
           </div>
           <button
             type="button"
             onClick={setTodayDate}
-            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition active:scale-95"
+            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition active:scale-95 flex-shrink-0"
           >
             Hari Ini
           </button>
@@ -214,7 +214,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         {/* Left Column (7 of 12 cols): Input Nilai Sekarang Setiap Aset */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900">
@@ -265,10 +265,44 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                 const isLoss = profit !== null && profit < 0;
 
                 return (
-                  <div key={asset.id} className="py-4 first:pt-2 last:pb-2">
-                    <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-center gap-3">
-                      {/* 1. Asset Name & Category (Col 4) */}
-                      <div className="sm:col-span-4 flex items-center gap-3">
+                  <div key={asset.id} className="py-3.5 sm:py-4 first:pt-2 last:pb-2">
+                    {/* Mobile Header: Asset Info on left, Live P/L badge on right */}
+                    <div className="flex items-center justify-between gap-2 sm:hidden mb-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <AssetIcon name={asset.name} category={asset.category} icon={asset.icon} size={30} />
+                        <div className="min-w-0">
+                          <span className="block text-xs font-bold text-slate-900 truncate">
+                            {asset.name}
+                          </span>
+                          <span className="block text-[10px] text-slate-400 capitalize">
+                            {asset.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mobile Live P/L Badge */}
+                      <div className="flex-shrink-0 text-right">
+                        {curVal === null ? (
+                          <span className="text-[11px] text-slate-400 italic">Belum diisi</span>
+                        ) : isProfit ? (
+                          <span className="inline-block rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2 py-0.5 text-[10px] font-bold tabular-nums">
+                            +{formatPercent(returnPercent)}
+                          </span>
+                        ) : isLoss ? (
+                          <span className="inline-block rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 px-2 py-0.5 text-[10px] font-bold tabular-nums">
+                            {formatPercent(returnPercent)}
+                          </span>
+                        ) : (
+                          <span className="inline-block rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-bold tabular-nums">
+                            0,00%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-center gap-2 sm:gap-3">
+                      {/* 1. Desktop Asset Name & Category (Col 4) */}
+                      <div className="hidden sm:flex sm:col-span-4 items-center gap-3 min-w-0">
                         <AssetIcon name={asset.name} category={asset.category} icon={asset.icon} size={36} />
                         <div className="min-w-0">
                           <span className="block text-xs sm:text-sm font-bold text-slate-900 truncate">
@@ -281,15 +315,16 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                       </div>
 
                       {/* 2. Modal Terdaftar (Col 3) */}
-                      <div className="sm:col-span-3 text-left sm:text-right">
-                        <span className="text-xs sm:text-sm font-bold text-slate-800 tabular-nums block">
+                      <div className="sm:col-span-3 flex items-center justify-between sm:justify-end text-left sm:text-right">
+                        <span className="text-[11px] font-semibold text-slate-400 sm:hidden">Modal Tercatat:</span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 tabular-nums">
                           {formatIDR(invested)}
                         </span>
                       </div>
 
                       {/* 3. Input Nilai Sekarang (Col 3) */}
                       <div className="sm:col-span-3">
-                        <div className="relative flex rounded-xl border border-slate-200 shadow-2xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/50">
+                        <div className="relative flex rounded-xl border border-slate-200 shadow-2xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/50 min-h-[42px] items-center">
                           <span className="inline-flex items-center px-2.5 text-xs font-bold text-slate-400 select-none">
                             Rp
                           </span>
@@ -299,13 +334,13 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                             placeholder="0"
                             value={inputValues[asset.id] || ''}
                             onChange={(e) => handleInputChange(asset.id, e.target.value)}
-                            className="w-full bg-transparent py-2 pr-2.5 text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums focus:outline-none placeholder:text-slate-300"
+                            className="w-full bg-transparent py-2 pr-2.5 text-sm sm:text-sm font-extrabold text-slate-900 tabular-nums focus:outline-none placeholder:text-slate-300"
                           />
                         </div>
                       </div>
 
-                      {/* 4. Live P/L Badge (Col 2) */}
-                      <div className="sm:col-span-2 text-left sm:text-right">
+                      {/* 4. Desktop Live P/L Badge (Col 2) */}
+                      <div className="hidden sm:block sm:col-span-2 text-right">
                         {curVal === null ? (
                           <span className="text-xs text-slate-400">-</span>
                         ) : isProfit ? (
@@ -362,7 +397,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                   type="button"
                   onClick={handleSave}
                   disabled={saveSuccess}
-                  className="w-full rounded-xl bg-emerald-700 py-3 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full rounded-xl bg-emerald-700 py-3 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-emerald-800 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   <span>{saveSuccess ? 'Berhasil Disimpan!' : 'Simpan Snapshot Portofolio'}</span>
@@ -370,7 +405,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-[0.98] flex items-center justify-center gap-1.5"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-[0.98] flex items-center justify-center gap-1.5 min-h-[42px]"
                 >
                   <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
                   <span>Reset Nilai Input</span>
@@ -382,7 +417,7 @@ export const CekPortfolioView: React.FC<CekPortfolioViewProps> = ({
 
         {/* Right Column (5 of 12 cols): Ringkasan Hasil (Sticky) */}
         <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-4">
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-emerald-700" />

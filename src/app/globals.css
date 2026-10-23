@@ -14,12 +14,30 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* OpenType Tabular Figures requirement from DESIGN.md */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+/* Safe Area Inset Support for Android & iOS Capacitor */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pb-safe-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Prevent text clipping and ensure smooth mobile rendering */
+input, select, textarea, button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Custom Scrollbar */

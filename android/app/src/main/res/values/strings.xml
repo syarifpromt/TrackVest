@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TrackVest</string>
+    <string name="title_activity_main">TrackVest</string>
+    <string name="package_name">com.trackvest.app</string>
+    <string name="custom_url_scheme">com.trackvest.app</string>
+</resources>

@@ -30,7 +30,7 @@ export const SnapshotDetailModal: React.FC<SnapshotDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
@@ -38,11 +38,11 @@ export const SnapshotDetailModal: React.FC<SnapshotDetailModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-xl rounded-t-3xl sm:rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-modal animate-in fade-in zoom-in-95 max-h-[90dvh] flex flex-col pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700 border border-brand-200">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
@@ -63,39 +63,39 @@ export const SnapshotDetailModal: React.FC<SnapshotDetailModalProps> = ({
         </div>
 
         {/* Snapshot Summary Cards */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 rounded-xl bg-slate-50 p-3.5 border border-slate-200/80 flex-shrink-0 text-center">
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+        <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-slate-50 p-2.5 sm:p-3.5 border border-slate-200/80 flex-shrink-0 text-center">
+          <div className="min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
               Total Modal
             </span>
-            <span className="text-xs font-bold text-slate-800 tabular-nums">
+            <span className="text-xs font-bold text-slate-800 tabular-nums block truncate" title={formatIDR(snapshot.totalInvested)}>
               {formatIDR(snapshot.totalInvested)}
             </span>
           </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+          <div className="min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
               Nilai Portfolio
             </span>
-            <span className="text-xs font-bold text-slate-900 tabular-nums">
+            <span className="text-xs font-bold text-slate-900 tabular-nums block truncate" title={formatIDR(snapshot.totalValue)}>
               {formatIDR(snapshot.totalValue)}
             </span>
           </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+          <div className="min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
               Total P/L
             </span>
-            <span className={`text-xs font-bold tabular-nums ${
-              isProfit ? 'text-brand-600' : isLoss ? 'text-rose-600' : 'text-slate-600'
-            }`}>
+            <span className={`text-xs font-bold tabular-nums block truncate ${
+              isProfit ? 'text-emerald-700' : isLoss ? 'text-rose-600' : 'text-slate-600'
+            }`} title={formatIDR(snapshot.totalProfit)}>
               {isProfit ? `+${formatIDR(snapshot.totalProfit).replace('Rp ', 'Rp')}` : formatIDR(snapshot.totalProfit)}
             </span>
           </div>
-          <div>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+          <div className="min-w-0">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
               Return Total
             </span>
-            <span className={`text-xs font-extrabold tabular-nums ${
-              isProfit ? 'text-brand-600' : isLoss ? 'text-rose-600' : 'text-slate-600'
+            <span className={`text-xs font-extrabold tabular-nums block truncate ${
+              isProfit ? 'text-emerald-700' : isLoss ? 'text-rose-600' : 'text-slate-600'
             }`}>
               {formatPercent(snapshot.totalReturnPercent)}
             </span>
