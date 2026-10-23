@@ -1,7 +1,8 @@
 /**
  * Unified TrackVest Data Repository
  * Acts as the single source of truth for all UI components.
- * Integrates IndexedDB local-first storage, sync queueing, and fallback localStorage hydration.
+ * Integrates IndexedDB local-first storage, sync queueing, fallback localStorage hydration,
+ * and automatic cloud migration verification.
  */
 
 import { Asset, Investment, Snapshot } from '../../types';
@@ -25,8 +26,10 @@ import {
   DBAsset,
   DBInvestment,
   DBSnapshot,
+  DBValuation,
 } from '../db/indexedDb';
 import { syncService } from '../sync/syncService';
+import { getSupabaseClient } from '../supabase/client';
 import {
   getStoredAssets,
   getStoredInvestments,
@@ -51,12 +54,39 @@ export interface RepositoryData {
   userName: string;
 }
 
+type RepositoryListener = () => void;
+
 export class DataRepository {
   private currentUserId: string = 'local';
+  private listeners: Set<RepositoryListener> = new Set();
+
+  constructor() {
+    // Whenever syncService pulls new cloud data, notify all repository listeners
+    syncService.subscribeDataChange(() => {
+      this.notifyListeners();
+    });
+  }
+
+  public subscribe(listener: RepositoryListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notifyListeners() {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error('[DataRepository] Listener error:', err);
+      }
+    }
+  }
 
   public setUserId(userId: string | null) {
-    this.currentUserId = userId || 'local';
-    syncService.setActiveUser(userId);
+    const cleanId = userId || 'local';
+    if (this.currentUserId === cleanId) return;
+    this.currentUserId = cleanId;
+    syncService.setActiveUser(cleanId);
   }
 
   public getUserId(): string {
@@ -86,12 +116,9 @@ export class DataRepository {
       const dbValuations = await dbGetValuations(this.currentUserId);
       const userSettings = await dbGetUserSettings(this.currentUserId);
 
-      // If user is guest/local and IndexedDB is empty, hydrate from localStorage
-      if (
-        this.currentUserId === 'local' &&
-        dbAssets.length === 0 &&
-        dbInvestments.length === 0
-      ) {
+      // If user is guest/local or active user has no data in IndexedDB yet
+      if (dbAssets.length === 0 && dbInvestments.length === 0) {
+        // Check if there is data in localStorage or 'local' IndexedDB
         const localAssets = getStoredAssets();
         const localInvestments = getStoredInvestments();
         const localSnapshots = getStoredSnapshots();
@@ -99,53 +126,60 @@ export class DataRepository {
         const localLastVal = getStoredLastValuationTime();
         const localUser = getStoredUserName();
 
-        // Seed to IndexedDB
-        if (localAssets.length > 0) {
-          const toSeed: DBAsset[] = localAssets.map((a) => ({
-            ...a,
-            userId: 'local',
-            updatedAt: a.createdAt || new Date().toISOString(),
-          }));
-          await dbPutAssetsBatch(toSeed);
-        }
+        const hasLocalData = localAssets.length > 0 || localInvestments.length > 0;
 
-        if (localInvestments.length > 0) {
-          const toSeed: DBInvestment[] = localInvestments.map((i) => ({
-            ...i,
-            userId: 'local',
-            updatedAt: i.createdAt || new Date().toISOString(),
-          }));
-          await dbPutInvestmentsBatch(toSeed);
-        }
+        if (hasLocalData) {
+          // If logged in as real user, migrate this local data immediately
+          if (this.currentUserId !== 'local') {
+            this.migrateLegacyDataToUser(this.currentUserId).catch(console.error);
+          } else {
+            // Seed to 'local' store in IndexedDB
+            const toSeedAssets: DBAsset[] = localAssets.map((a) => ({
+              ...a,
+              userId: 'local',
+              updatedAt: a.createdAt || new Date().toISOString(),
+            }));
+            await dbPutAssetsBatch(toSeedAssets);
 
-        if (localSnapshots.length > 0) {
-          const toSeed: DBSnapshot[] = localSnapshots.map((s) => ({
-            ...s,
-            userId: 'local',
-            updatedAt: s.createdAt || new Date().toISOString(),
-          }));
-          await dbPutSnapshotsBatch(toSeed);
-        }
+            const toSeedInv: DBInvestment[] = localInvestments.map((i) => ({
+              ...i,
+              userId: 'local',
+              updatedAt: i.createdAt || new Date().toISOString(),
+            }));
+            await dbPutInvestmentsBatch(toSeedInv);
 
-        return {
-          assets: localAssets,
-          investments: localInvestments,
-          snapshots: localSnapshots,
-          valuations: localValuations,
-          lastValuationTime: localLastVal,
-          userName: localUser,
-        };
+            const toSeedSnap: DBSnapshot[] = localSnapshots.map((s) => ({
+              ...s,
+              userId: 'local',
+              updatedAt: s.createdAt || new Date().toISOString(),
+            }));
+            await dbPutSnapshotsBatch(toSeedSnap);
+          }
+
+          // Return the non-empty local data to prevent showing Rp0 on the screen
+          return {
+            assets: localAssets,
+            investments: localInvestments,
+            snapshots: localSnapshots,
+            valuations: localValuations,
+            lastValuationTime: localLastVal,
+            userName: localUser,
+          };
+        }
       }
 
-      // Mirror to localStorage for offline cache & UI fallback
+      // If we have data in IndexedDB, clean it and mirror safely to localStorage
       const cleanAssets = dbAssets.map(({ userId, updatedAt, deletedAt, ...rest }) => rest);
       const cleanInvestments = dbInvestments.map(({ userId, updatedAt, deletedAt, ...rest }) => rest);
       const cleanSnapshots = dbSnapshots.map(({ userId, updatedAt, deletedAt, ...rest }) => rest);
 
-      saveStoredAssets(cleanAssets);
-      saveStoredInvestments(cleanInvestments);
-      saveStoredSnapshots(cleanSnapshots);
-      saveStoredValuations(dbValuations);
+      if (cleanAssets.length > 0 || cleanInvestments.length > 0) {
+        saveStoredAssets(cleanAssets);
+        saveStoredInvestments(cleanInvestments);
+        saveStoredSnapshots(cleanSnapshots);
+        saveStoredValuations(dbValuations);
+      }
+
       if (userSettings?.lastValuationTime) {
         saveStoredLastValuationTime(userSettings.lastValuationTime);
       }
@@ -204,10 +238,10 @@ export class DataRepository {
       syncService.triggerSync();
     }
 
-    // Update localStorage cache
     const current = getStoredAssets();
     const { userId, updatedAt, deletedAt, ...clean } = newAsset;
     saveStoredAssets([...current, clean]);
+    this.notifyListeners();
 
     return clean;
   }
@@ -238,6 +272,7 @@ export class DataRepository {
 
     const current = getStoredAssets().map((a) => (a.id === asset.id ? asset : a));
     saveStoredAssets(current);
+    this.notifyListeners();
   }
 
   public async deleteAsset(assetId: string): Promise<void> {
@@ -307,12 +342,12 @@ export class DataRepository {
       syncService.triggerSync();
     }
 
-    // Update localStorage cache
     saveStoredAssets(getStoredAssets().filter((a) => a.id !== assetId));
     saveStoredInvestments(getStoredInvestments().filter((inv) => inv.assetId !== assetId));
     const vals = { ...getStoredValuations() };
     delete vals[assetId];
     saveStoredValuations(vals);
+    this.notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
@@ -356,6 +391,7 @@ export class DataRepository {
     const current = getStoredInvestments();
     const { userId, updatedAt, deletedAt, ...clean } = newInv;
     saveStoredInvestments([clean, ...current]);
+    this.notifyListeners();
 
     return clean;
   }
@@ -388,6 +424,7 @@ export class DataRepository {
     }
 
     saveStoredInvestments(getStoredInvestments().filter((i) => i.id !== id));
+    this.notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
@@ -423,7 +460,7 @@ export class DataRepository {
 
     // 2. Save Valuations
     for (const [assetId, val] of Object.entries(newValuations)) {
-      const dbVal = {
+      const dbVal: DBValuation = {
         userId: this.currentUserId,
         assetId,
         currentValue: val,
@@ -479,6 +516,7 @@ export class DataRepository {
     const currentVals = { ...getStoredValuations(), ...newValuations };
     saveStoredValuations(currentVals);
     saveStoredLastValuationTime(lastValuationTimeIso);
+    this.notifyListeners();
   }
 
   public async deleteSnapshot(id: string): Promise<void> {
@@ -509,6 +547,7 @@ export class DataRepository {
     }
 
     saveStoredSnapshots(getStoredSnapshots().filter((s) => s.id !== id));
+    this.notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
@@ -542,22 +581,17 @@ export class DataRepository {
     }
 
     saveStoredUserName(clean);
+    this.notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
-  // Safe Migration from Legacy localStorage
+  // Safe Migration & Cloud Verification
   // ---------------------------------------------------------------------------
 
   public async migrateLegacyDataToUser(userId: string): Promise<number> {
     if (typeof window === 'undefined' || !userId || userId === 'local') return 0;
 
-    const userSettings = (await dbGetUserSettings(userId)) || { userId };
-    if (userSettings.migratedFromLocalStorage) {
-      // Already migrated for this user account
-      return 0;
-    }
-
-    // 1. Read existing localStorage data
+    // 1. Gather all potential local data sources
     const localAssets = getStoredAssets();
     const localInvestments = getStoredInvestments();
     const localSnapshots = getStoredSnapshots();
@@ -565,21 +599,32 @@ export class DataRepository {
     const localLastVal = getStoredLastValuationTime();
     const localUserName = getStoredUserName();
 
-    const totalItems = localAssets.length + localInvestments.length + localSnapshots.length;
+    // Also check 'local' store in IndexedDB
+    const indexedDbLocalAssets = await dbGetAssets('local');
+    const indexedDbLocalInvestments = await dbGetInvestments('local');
+    const indexedDbLocalSnapshots = await dbGetSnapshots('local');
+    const indexedDbLocalValuations = await dbGetValuations('local');
+
+    // Combine / prefer whichever has data
+    const assetsToMigrate = localAssets.length > 0 ? localAssets : indexedDbLocalAssets;
+    const investmentsToMigrate = localInvestments.length > 0 ? localInvestments : indexedDbLocalInvestments;
+    const snapshotsToMigrate = localSnapshots.length > 0 ? localSnapshots : indexedDbLocalSnapshots;
+    const valuationsToMigrate = Object.keys(localValuations).length > 0 ? localValuations : indexedDbLocalValuations;
+
+    const totalItems = assetsToMigrate.length + investmentsToMigrate.length + snapshotsToMigrate.length;
     if (totalItems === 0) {
-      await dbPutUserSettings({ ...userSettings, migratedFromLocalStorage: true });
       return 0;
     }
 
-    // 2. Create emergency backup in localStorage
+    // 2. Create emergency safety backup before migration
     try {
       const backupPayload = {
         exportedAt: new Date().toISOString(),
         userId,
-        assets: localAssets,
-        investments: localInvestments,
-        snapshots: localSnapshots,
-        valuations: localValuations,
+        assets: assetsToMigrate,
+        investments: investmentsToMigrate,
+        snapshots: snapshotsToMigrate,
+        valuations: valuationsToMigrate,
         lastValuationTime: localLastVal,
         userName: localUserName,
       };
@@ -590,8 +635,8 @@ export class DataRepository {
 
     const nowIso = new Date().toISOString();
 
-    // 3. Migrate Assets
-    for (const a of localAssets) {
+    // 3. Migrate Assets to user's IndexedDB and enqueue
+    for (const a of assetsToMigrate) {
       const dbA: DBAsset = {
         ...a,
         userId,
@@ -609,8 +654,8 @@ export class DataRepository {
       });
     }
 
-    // 4. Migrate Investments
-    for (const inv of localInvestments) {
+    // 4. Migrate Investments to user's IndexedDB and enqueue
+    for (const inv of investmentsToMigrate) {
       const dbInv: DBInvestment = {
         ...inv,
         userId,
@@ -628,8 +673,8 @@ export class DataRepository {
       });
     }
 
-    // 5. Migrate Snapshots
-    for (const snap of localSnapshots) {
+    // 5. Migrate Snapshots to user's IndexedDB and enqueue
+    for (const snap of snapshotsToMigrate) {
       const dbSnap: DBSnapshot = {
         ...snap,
         userId,
@@ -648,8 +693,8 @@ export class DataRepository {
     }
 
     // 6. Migrate Valuations
-    for (const [assetId, val] of Object.entries(localValuations)) {
-      const dbVal = {
+    for (const [assetId, val] of Object.entries(valuationsToMigrate)) {
+      const dbVal: DBValuation = {
         userId,
         assetId,
         currentValue: val,
@@ -666,7 +711,8 @@ export class DataRepository {
       });
     }
 
-    // 7. Migrate User Settings
+    // 7. Update User Settings
+    const userSettings = (await dbGetUserSettings(userId)) || { userId };
     await dbPutUserSettings({
       ...userSettings,
       fullName: localUserName,
@@ -686,12 +732,101 @@ export class DataRepository {
       attempts: 0,
     });
 
-    syncService.refreshPendingCount();
+    // Notify listeners so UI shows the migrated data immediately
+    this.notifyListeners();
+
+    // Trigger sync
+    await syncService.refreshPendingCount();
     syncService.triggerSync();
 
     return totalItems;
   }
+
+  /**
+   * Verify whether the cloud database has this user's records.
+   * If cloud is empty but local has data, re-enqueues local data to ensure it reaches Supabase.
+   */
+  public async ensureUserCloudSync(userId: string): Promise<void> {
+    if (typeof window === 'undefined' || !userId || userId === 'local') return;
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    try {
+      // Check count of user assets in Supabase
+      const { count, error } = await supabase
+        .from('assets')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.warn('[DataRepository] Cloud count check failed:', error);
+        return;
+      }
+
+      // If Supabase has 0 assets, but this device has local assets, re-upload!
+      if (count === 0 || count === null) {
+        const userAssets = await dbGetAssets(userId);
+        const userInvestments = await dbGetInvestments(userId);
+        const userSnapshots = await dbGetSnapshots(userId);
+        const userValuations = await dbGetValuations(userId);
+
+        if (userAssets.length > 0 || userInvestments.length > 0) {
+          console.log('[DataRepository] Cloud is empty but local has data. Re-uploading to Supabase...');
+          const nowIso = new Date().toISOString();
+
+          for (const a of userAssets) {
+            await dbEnqueueSync({
+              userId,
+              table: 'assets',
+              action: 'upsert',
+              payload: a,
+              timestamp: nowIso,
+              attempts: 0,
+            });
+          }
+
+          for (const inv of userInvestments) {
+            await dbEnqueueSync({
+              userId,
+              table: 'investments',
+              action: 'upsert',
+              payload: inv,
+              timestamp: nowIso,
+              attempts: 0,
+            });
+          }
+
+          for (const snap of userSnapshots) {
+            await dbEnqueueSync({
+              userId,
+              table: 'snapshots',
+              action: 'upsert',
+              payload: snap,
+              timestamp: nowIso,
+              attempts: 0,
+            });
+          }
+
+          for (const [assetId, val] of Object.entries(userValuations)) {
+            await dbEnqueueSync({
+              userId,
+              table: 'latest_valuations',
+              action: 'upsert',
+              payload: { userId, assetId, currentValue: val, updatedAt: nowIso },
+              timestamp: nowIso,
+              attempts: 0,
+            });
+          }
+
+          await syncService.refreshPendingCount();
+          syncService.triggerSync();
+        }
+      }
+    } catch (err) {
+      console.warn('[DataRepository] ensureUserCloudSync error:', err);
+    }
+  }
 }
 
 export const dataRepository = new DataRepository();
-

@@ -45,13 +45,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
 
       if (initialSession?.user) {
         dataRepository.setUserId(initialSession.user.id);
-        dataRepository.migrateLegacyDataToUser(initialSession.user.id).catch(console.error);
+        await dataRepository.migrateLegacyDataToUser(initialSession.user.id).catch(console.error);
+        await dataRepository.ensureUserCloudSync(initialSession.user.id).catch(console.error);
       } else {
         dataRepository.setUserId('local');
       }
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           dataRepository.setUserId(currentSession.user.id);
           if (event === 'SIGNED_IN') {
             await dataRepository.migrateLegacyDataToUser(currentSession.user.id);
+            await dataRepository.ensureUserCloudSync(currentSession.user.id);
             syncService.triggerSync();
           }
         } else if (event === 'SIGNED_OUT') {
@@ -101,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         dataRepository.setUserId(data.user.id);
         await dataRepository.migrateLegacyDataToUser(data.user.id);
+        await dataRepository.ensureUserCloudSync(data.user.id);
         syncService.triggerSync();
       }
 
@@ -135,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user && data.session) {
         dataRepository.setUserId(data.user.id);
         await dataRepository.migrateLegacyDataToUser(data.user.id);
+        await dataRepository.ensureUserCloudSync(data.user.id);
         syncService.triggerSync();
       }
 

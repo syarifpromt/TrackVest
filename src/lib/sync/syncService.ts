@@ -46,11 +46,14 @@ export interface SyncState {
 }
 
 type SyncListener = (state: SyncState) => void;
+type DataChangeListener = () => void;
 
 class SyncService {
   private activeUserId: string | null = null;
   private isSyncing = false;
+  private hasPendingSyncRequest = false;
   private listeners: Set<SyncListener> = new Set();
+  private dataChangeListeners: Set<DataChangeListener> = new Set();
   private state: SyncState = {
     status: 'idle',
     lastSyncedAt: null,
@@ -70,6 +73,13 @@ class SyncService {
       window.addEventListener('offline', () => {
         this.updateState({ status: 'offline' });
       });
+
+      // Auto periodic background sync when window is focused
+      window.addEventListener('focus', () => {
+        if (this.activeUserId) {
+          this.triggerSync();
+        }
+      });
     }
   }
 
@@ -79,10 +89,29 @@ class SyncService {
     return () => this.listeners.delete(listener);
   }
 
+  public subscribeDataChange(listener: DataChangeListener): () => void {
+    this.dataChangeListeners.add(listener);
+    return () => this.dataChangeListeners.delete(listener);
+  }
+
+  private notifyDataChange() {
+    for (const listener of this.dataChangeListeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error('[SyncService] Error in data change listener:', err);
+      }
+    }
+  }
+
   private updateState(partial: Partial<SyncState>) {
     this.state = { ...this.state, ...partial };
     for (const listener of this.listeners) {
-      listener(this.state);
+      try {
+        listener(this.state);
+      } catch (err) {
+        console.error('[SyncService] Error in sync listener:', err);
+      }
     }
   }
 
@@ -110,22 +139,29 @@ class SyncService {
     this.triggerSync();
   }
 
-  public async refreshPendingCount() {
-    if (!this.activeUserId) return;
+  public async refreshPendingCount(): Promise<number> {
+    if (!this.activeUserId) return 0;
     try {
       const queue = await dbGetSyncQueue(this.activeUserId);
       this.updateState({ pendingCount: queue.length });
+      return queue.length;
     } catch {
-      // ignore
+      return 0;
     }
   }
 
   public async triggerSync(): Promise<boolean> {
-    if (this.isSyncing) return false;
-    if (!this.activeUserId) return false;
+    if (this.isSyncing) {
+      // Mark that another sync request arrived during an active sync
+      this.hasPendingSyncRequest = true;
+      return false;
+    }
+
+    if (!this.activeUserId || this.activeUserId === 'local') return false;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      this.updateState({ status: 'offline' });
+      const queue = await dbGetSyncQueue(this.activeUserId);
+      this.updateState({ status: 'offline', pendingCount: queue.length });
       return false;
     }
 
@@ -142,14 +178,19 @@ class SyncService {
     }
 
     this.isSyncing = true;
-    this.updateState({ status: 'syncing', errorMessage: null });
+    const initialQueue = await dbGetSyncQueue(session.user.id);
+    this.updateState({ 
+      status: 'syncing', 
+      pendingCount: initialQueue.length,
+      errorMessage: null 
+    });
 
     try {
       // 1. Push local changes from sync queue to Supabase
-      await this.pushSyncQueue(session.user.id);
+      const pushSuccess = await this.pushSyncQueue(session.user.id);
 
       // 2. Pull remote changes from Supabase to IndexedDB
-      await this.pullRemoteChanges(session.user.id);
+      const pullResult = await this.pullRemoteChanges(session.user.id);
 
       // 3. Update user sync timestamp
       const nowIso = new Date().toISOString();
@@ -159,15 +200,32 @@ class SyncService {
         lastSyncedAt: nowIso,
       });
 
-      const queue = await dbGetSyncQueue(session.user.id);
-      this.updateState({
-        status: 'success',
-        lastSyncedAt: nowIso,
-        pendingCount: queue.length,
-        errorMessage: null,
-      });
+      // 4. Verify remaining items in queue
+      const remainingQueue = await dbGetSyncQueue(session.user.id);
+      
+      if (remainingQueue.length > 0) {
+        const lastErr = remainingQueue[0].lastError || `${remainingQueue.length} data gagal terkirim ke cloud.`;
+        this.updateState({
+          status: 'error',
+          lastSyncedAt: nowIso,
+          pendingCount: remainingQueue.length,
+          errorMessage: lastErr,
+        });
+      } else {
+        this.updateState({
+          status: 'success',
+          lastSyncedAt: nowIso,
+          pendingCount: 0,
+          errorMessage: null,
+        });
+      }
 
-      return true;
+      // If remote pull brought new data, notify UI to reload
+      if (pullResult.hasNewData) {
+        this.notifyDataChange();
+      }
+
+      return pushSuccess;
     } catch (err: any) {
       console.error('[SyncService] Sync error:', err);
       const queue = await dbGetSyncQueue(this.activeUserId);
@@ -179,18 +237,26 @@ class SyncService {
       return false;
     } finally {
       this.isSyncing = false;
+
+      // If a sync was requested while running, execute it now
+      if (this.hasPendingSyncRequest) {
+        this.hasPendingSyncRequest = false;
+        setTimeout(() => this.triggerSync(), 200);
+      }
     }
   }
 
   /**
    * Push pending mutations from sync_queue to Supabase
    */
-  private async pushSyncQueue(userId: string): Promise<void> {
+  private async pushSyncQueue(userId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
-    if (!supabase) return;
+    if (!supabase) return false;
 
     const queue = await dbGetSyncQueue(userId);
-    if (queue.length === 0) return;
+    if (queue.length === 0) return true;
+
+    let allSucceeded = true;
 
     for (const item of queue) {
       if (!item.id) continue;
@@ -207,7 +273,8 @@ class SyncService {
           error = res.error;
         } else if (item.table === 'snapshots') {
           const row = snapshotToDbRow(item.payload);
-          const res = await supabase.from('snapshots').upsert(row, { onConflict: 'user_id,id' });
+          // Snapshot constraint is unique_user_snapshot_date (user_id, date)
+          const res = await supabase.from('snapshots').upsert(row, { onConflict: 'user_id,date' });
           error = res.error;
         } else if (item.table === 'latest_valuations') {
           if (item.action === 'delete') {
@@ -238,7 +305,8 @@ class SyncService {
         }
 
         if (error) {
-          console.warn('[SyncService] Failed to push item:', item.id, error);
+          allSucceeded = false;
+          console.warn('[SyncService] Failed to push item:', item.id, item.table, error);
           await dbUpdateSyncQueueItem({
             ...item,
             attempts: (item.attempts || 0) + 1,
@@ -249,6 +317,7 @@ class SyncService {
           await dbRemoveSyncQueueItem(item.id);
         }
       } catch (err: any) {
+        allSucceeded = false;
         await dbUpdateSyncQueueItem({
           ...item,
           attempts: (item.attempts || 0) + 1,
@@ -256,14 +325,18 @@ class SyncService {
         });
       }
     }
+
+    return allSucceeded;
   }
 
   /**
    * Pull remote changes from Supabase into IndexedDB
    */
-  private async pullRemoteChanges(userId: string): Promise<void> {
+  private async pullRemoteChanges(userId: string): Promise<{ hasNewData: boolean }> {
     const supabase = getSupabaseClient();
-    if (!supabase) return;
+    if (!supabase) return { hasNewData: false };
+
+    let hasNewData = false;
 
     // 1. Fetch Remote Profiles
     const { data: profileData } = await supabase
@@ -279,6 +352,7 @@ class SyncService {
         fullName: profileData.full_name || userSettings.fullName,
         lastValuationTime: profileData.last_valuation_time || userSettings.lastValuationTime,
       });
+      hasNewData = true;
     }
 
     // 2. Fetch Remote Assets
@@ -287,9 +361,10 @@ class SyncService {
       .select('*')
       .eq('user_id', userId);
 
-    if (!assetErr && remoteAssets) {
+    if (!assetErr && remoteAssets && remoteAssets.length > 0) {
       const mappedAssets: DBAsset[] = remoteAssets.map(dbRowToAsset);
       await dbPutAssetsBatch(mappedAssets);
+      hasNewData = true;
     }
 
     // 3. Fetch Remote Investments
@@ -298,9 +373,10 @@ class SyncService {
       .select('*')
       .eq('user_id', userId);
 
-    if (!invErr && remoteInvestments) {
+    if (!invErr && remoteInvestments && remoteInvestments.length > 0) {
       const mappedInv: DBInvestment[] = remoteInvestments.map(dbRowToInvestment);
       await dbPutInvestmentsBatch(mappedInv);
+      hasNewData = true;
     }
 
     // 4. Fetch Remote Snapshots
@@ -309,9 +385,10 @@ class SyncService {
       .select('*')
       .eq('user_id', userId);
 
-    if (!snapErr && remoteSnapshots) {
+    if (!snapErr && remoteSnapshots && remoteSnapshots.length > 0) {
       const mappedSnap: DBSnapshot[] = remoteSnapshots.map(dbRowToSnapshot);
       await dbPutSnapshotsBatch(mappedSnap);
+      hasNewData = true;
     }
 
     // 5. Fetch Remote Valuations
@@ -320,12 +397,14 @@ class SyncService {
       .select('*')
       .eq('user_id', userId);
 
-    if (!valErr && remoteValuations) {
+    if (!valErr && remoteValuations && remoteValuations.length > 0) {
       const mappedVal: DBValuation[] = remoteValuations.map(dbRowToValuation);
       await dbPutValuationsBatch(mappedVal);
+      hasNewData = true;
     }
+
+    return { hasNewData };
   }
 }
 
 export const syncService = new SyncService();
-

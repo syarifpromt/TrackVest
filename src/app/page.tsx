@@ -100,6 +100,10 @@ export default function Home() {
 
   useEffect(() => {
     refreshData();
+    const unsubscribe = dataRepository.subscribe(() => {
+      refreshData();
+    });
+    return unsubscribe;
   }, [user?.id]);
 
   // Compute live calculations

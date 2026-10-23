@@ -64,6 +64,27 @@ export const SyncStatusBadge: React.FC = () => {
       >
         <AlertCircle className="h-3.5 w-3.5 text-rose-600" />
         <span className="hidden sm:inline">Sync Gagal (Ulangi)</span>
+        {pendingCount > 0 && (
+          <span className="rounded-full bg-rose-200 px-1.5 text-[9px] font-black text-rose-900">
+            {pendingCount}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <button
+        onClick={() => triggerSync()}
+        title={`${pendingCount} perubahan antrean offline belum terkirim. Klik untuk sinkronkan sekarang.`}
+        className="group flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+      >
+        <RefreshCw className="h-3.5 w-3.5 text-amber-600 group-hover:rotate-180 transition-transform" />
+        <span className="hidden sm:inline">Antrean Sinkron</span>
+        <span className="rounded-full bg-amber-200 px-1.5 text-[9px] font-black text-amber-900">
+          {pendingCount}
+        </span>
       </button>
     );
   }
@@ -76,11 +97,6 @@ export const SyncStatusBadge: React.FC = () => {
     >
       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
       <span className="hidden sm:inline">Tersinkron</span>
-      {pendingCount > 0 && (
-        <span className="rounded-full bg-emerald-200 px-1.5 py-0.2 text-[9px] font-extrabold text-emerald-900">
-          +{pendingCount}
-        </span>
-      )}
     </button>
   );
 };
